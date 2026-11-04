@@ -18,6 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: python tests/test_brokers.py
+      - run: python tests/test_server.py
 
   build:
     needs: test
@@ -28,7 +29,10 @@ jobs:
             name: jageum-jeonseon-windows.exe
             sep: ";"
           - os: macos-latest
-            name: jageum-jeonseon-macos
+            name: jageum-jeonseon-macos-apple-silicon
+            sep: ":"
+          - os: macos-13
+            name: jageum-jeonseon-macos-intel
             sep: ":"
           - os: ubuntu-latest
             name: jageum-jeonseon-linux

@@ -24,6 +24,8 @@
 - 증권사 API 키는 **내 PC의 설정 파일**(`홈 폴더/.jageum-jeonseon/config.json`, 본인만 읽기 가능)에만 저장됩니다. 증권사 서버 말고 어디에도 보내지 않습니다.
 - 실행할 때마다 새 접속 토큰을 만들어서, 실행기가 띄운 주소로 연 화면만 API를 쓸 수 있습니다. 다른 웹사이트가 내 PC의 실행기를 몰래 호출하는 것을 막습니다.
 - 출정 기록(일지·전공 추이 등)도 같은 폴더의 `state.json`에 저장됩니다.
+- 3D 엔진(three.js)은 앱에 포함되어 있어 외부에서 코드를 받아 오지 않습니다. 화면에는 보안 정책(CSP)이 걸려 있어 페이지가 내 PC의 실행기 말고 다른 곳으로 데이터를 보낼 수 없습니다. 외부 접속은 글꼴(Google Fonts)과, 실행할 때 한 번 하는 새 버전 확인(GitHub)뿐입니다.
+- 「이 증권사 키 삭제」로 저장한 키와 토큰을 지울 수 있습니다.
 
 ## 지원 증권사
 
@@ -56,39 +58,39 @@
 ### 실행 파일 (권장)
 1. 이 저장소의 **Releases**에서 내 운영체제용 파일을 받습니다.
    - Windows: `jageum-jeonseon-windows.exe`
-   - macOS: `jageum-jeonseon-macos`
+   - macOS (M1·M2 등 애플 실리콘): `jageum-jeonseon-macos-apple-silicon`
+   - macOS (인텔): `jageum-jeonseon-macos-intel`
    - Linux: `jageum-jeonseon-linux`
 2. 실행하면 브라우저가 열립니다. 오른쪽 「계좌 연결」 패널에서 증권사와 키를 넣고 **저장하고 연결 시험** → **지금 동기화**.
 3. 「자동」에서 1·5·15분마다 자동 동기화를 켤 수 있습니다.
 
 처음 실행할 때 경고가 나올 수 있습니다. 코드 서명이 없는 실행 파일이라서 그렇습니다.
 - **Windows:** "Windows의 PC 보호" → 추가 정보 → 실행
-- **macOS:** 파일 우클릭 → 열기, 또는 터미널에서 `chmod +x jageum-jeonseon-macos && xattr -d com.apple.quarantine jageum-jeonseon-macos`
+- **macOS:** 파일 우클릭 → 열기, 또는 터미널에서 `chmod +x 받은파일 && xattr -d com.apple.quarantine 받은파일`
 
 ### 파이썬으로 직접 실행
 파이썬 3.9 이상이면 추가 설치 없이 됩니다.
 ```bash
 python3 server/warroom.py
 ```
-옵션: `--port 8787`, `--no-browser`, `--print-balance kiwoom` (서버 없이 잔고 JSON만 출력)
+옵션: `--port 8787`, `--no-browser`, `--no-update-check`(새 버전 확인 끄기), `--print-balance kiwoom`(서버 없이 잔고 JSON만 출력)
 
 ### 웹 체험판
-GitHub Pages에 올라간 체험판은 계좌 연결 없이 예시 데이터·붙여넣기·모의전만 됩니다. 계좌 연결은 실행 파일에서만 됩니다(브라우저만으로는 API 키를 안전하게 숨길 수 없기 때문).
+저장소 Settings → Pages → Source를 **GitHub Actions**로 바꾸면 `app/`이 체험판으로 배포됩니다. 체험판은 계좌 연결 없이 예시 데이터·붙여넣기·모의전만 됩니다. 계좌 연결은 실행 파일에서만 됩니다(브라우저만으로는 API 키를 안전하게 숨길 수 없기 때문).
 
 ## 개발
 
 ```bash
 python3 tests/test_brokers.py   # 가짜 증권사 서버로 키움·토스 응답 변환 시험
+python3 tests/test_server.py    # 접속 토큰·호스트 검사, 비밀키 비노출, 파일 권한, 저장 시험
 ```
 - `server/warroom.py` — 로컬 서버와 증권사 연동 (표준 라이브러리만 사용)
 - `app/index.html` — 게임 화면 (단일 파일)
-- `.github/workflows/release.yml` — `v*` 태그를 올리면 Windows/macOS/Linux 실행 파일을 빌드해 Releases에 올림
+- `app/vendor/` — three.js r128 (MIT, `THREE-LICENSE.txt`)
+- `.github/workflows/release.yml` — `main`에 올리면 시험 → Windows/macOS(애플 실리콘·인텔)/Linux 실행 파일 빌드 → Releases에 `server/warroom.py`의 `VERSION`으로 배포
 - `.github/workflows/pages.yml` — `app/`을 GitHub Pages 체험판으로 배포
 
-새 버전 배포:
-```bash
-git tag v0.1.0 && git push origin v0.1.0
-```
+새 버전 배포: `server/warroom.py`의 `VERSION`을 올리고 `main`에 푸시하면 됩니다. 실행 중인 앱은 다음 실행 때 새 버전 알림을 띄웁니다.
 
 ## 주의
 

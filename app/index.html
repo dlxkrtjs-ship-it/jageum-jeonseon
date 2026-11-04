@@ -494,9 +494,11 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
           <div class="lkrow">
             <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
             <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
+            <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
             <label class="lkf inl">자동<select id="lkAuto"><option value="0">끔</option><option value="60">1분마다</option><option value="300">5분마다</option><option value="900">15분마다</option></select></label>
           </div>
           <p class="toast" id="lkMsg" role="status"></p>
+          <p class="note" id="lkUpd" hidden></p>
           <p class="note">키는 이 PC의 설정 파일(홈 폴더의 .jageum-jeonseon)에만 저장되고 증권사 서버 말고는 어디에도 보내지 않습니다. 이 앱은 잔고 조회만 하며 주문은 하지 않습니다.</p>
         </div>
       </section>
@@ -1481,15 +1483,15 @@ window.makeInk=function(){
 };
 window.WRInk=window.makeInk();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/CopyShader.js"></script>
+<script src="vendor/LuminosityHighPassShader.js"></script>
+<script src="vendor/FXAAShader.js"></script>
+<script src="vendor/EffectComposer.js"></script>
+<script src="vendor/RenderPass.js"></script>
+<script src="vendor/ShaderPass.js"></script>
+<script src="vendor/UnrealBloomPass.js"></script>
+<script src="vendor/RoomEnvironment.js"></script>
 <script>
 window.WR3D=(function(){
   if(!window.THREE) return null;
@@ -2631,6 +2633,11 @@ async function initLink(){
     lkMsg('저장하고 증권사에 연결해 보는 중…');try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify(body)});lkFill(r.config);document.querySelectorAll('#rLink input[type=password]').forEach(i=>i.value='');
       const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인. 「지금 동기화」로 반영하세요.`)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
   $('lkSync').onclick=()=>lkSync(false);
+  $('lkForget').onclick=async e=>{const b=$('lkBroker').value,btn=e.currentTarget;if(b==='demo'){lkMsg('데모는 저장된 키가 없습니다.');return}
+    if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent=`${LKN[b]} 키를 정말 삭제할까요? 한 번 더 누르세요`;setTimeout(()=>{delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제'},4000);return}
+    delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제';
+    try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify({forget:b})});for(const[,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=false;else el.value=''}lkFill(r.config);lkMsg(`${LKN[b]} 키와 토큰을 이 PC에서 삭제했습니다.`)}catch(err){lkMsg('삭제 실패: '+err.message,true)}};
+  lkApi('/api/update').then(u=>{if(u&&u.newer){const el=$('lkUpd');el.hidden=false;el.innerHTML=`새 버전 <b>${esc(u.latest)}</b>이 나왔습니다 (지금 ${esc(u.current)}). <a href="${esc(u.url)}" target="_blank" rel="noopener">내려받기</a>`}}).catch(()=>{});
   try{$('lkAuto').value=localStorage.getItem('wr-auto')||'0'}catch(e){}$('lkAuto').addEventListener('change',lkAuto);lkAuto();
   const cb=st.config.broker||'demo',ready=cb==='demo'||((st.config.brokers||{})[cb]||{})._ready;
   if(ready&&cb!=='demo')lkSync(true);else lkMsg(cb==='demo'?'증권사를 고르고 키를 넣은 뒤 「저장하고 연결 시험」을 누르세요. 데모로 먼저 체험하려면 「지금 동기화」를 누르세요.':'');

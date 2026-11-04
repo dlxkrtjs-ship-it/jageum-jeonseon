@@ -9,11 +9,12 @@
 
 지원: 키움증권(REST API), 토스증권(Open API), 한국투자증권(KIS Open API), 데모(키 없이 체험)
 """
-import argparse, json, os, random, secrets, socket, sys, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
+import argparse, json, os, random, re, secrets, socket, sys, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.1.1"
+VERSION = "0.2.0"
+REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
@@ -309,6 +310,10 @@ class Handler(BaseHTTPRequestHandler):
         host = (self.headers.get("Host") or "").lower()
         return host in (f"127.0.0.1:{self.port}", f"localhost:{self.port}")
 
+    CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+           "font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; "
+           "frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
+
     def _send(self, code, obj=None, ctype="application/json; charset=utf-8", raw=None):
         body = raw if raw is not None else json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
@@ -317,6 +322,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
+        if ctype.startswith("text/html"):
+            self.send_header("Content-Security-Policy", self.CSP)
         self.end_headers()
         self.wfile.write(body)
 
@@ -338,6 +345,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"app": APP_NAME, "version": VERSION, "config": public_config(load_config())})
             if path == "/api/state":
                 return self._send(200, {"state": _read(STATE_FILE) or None})
+            if path == "/api/update":
+                return self._send(200, check_update(self.server.update_check))
             if path == "/api/balance":
                 try:
                     return self._send(200, fetch_balance())
@@ -349,6 +358,12 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/", "/index.html"):
             with open(os.path.join(app_dir(), "index.html"), "rb") as f:
                 return self._send(200, raw=f.read(), ctype="text/html; charset=utf-8")
+        m = re.fullmatch(r"/vendor/([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*\.js)", path)
+        if m:
+            fp = os.path.join(app_dir(), "vendor", m.group(1))
+            if os.path.isfile(fp):
+                with open(fp, "rb") as f:
+                    return self._send(200, raw=f.read(), ctype="application/javascript; charset=utf-8")
         self._send(404, {"error": "없는 경로"})
 
     def do_POST(self):
@@ -397,6 +412,29 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "없는 경로"})
 
 
+_UPDATE = {}
+
+
+def _ver(v):
+    return tuple(int(x) for x in re.findall(r"\d+", v or "")[:3]) or (0,)
+
+
+def check_update(enabled):
+    """GitHub 최신 릴리스와 비교. 실행 중 한 번만 묻는다. --no-update-check 로 끌 수 있다."""
+    if not enabled:
+        return {"current": VERSION, "newer": False}
+    if not _UPDATE:
+        try:
+            req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest", headers={"Accept": "application/vnd.github+json", "User-Agent": "jageum-jeonseon"})
+            with urllib.request.urlopen(req, timeout=4) as r:
+                d = json.loads(r.read().decode("utf-8"))
+            _UPDATE.update(latest=d.get("tag_name", ""), url=d.get("html_url", f"https://github.com/{REPO}/releases/latest"))
+        except Exception:
+            _UPDATE.update(latest="", url="")
+    return {"current": "v" + VERSION, "latest": _UPDATE.get("latest"), "url": _UPDATE.get("url"),
+            "newer": bool(_UPDATE.get("latest")) and _ver(_UPDATE["latest"]) > _ver(VERSION)}
+
+
 def free_port(preferred):
     for p in [preferred] + list(range(preferred + 1, preferred + 30)):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -413,6 +451,7 @@ def main():
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-browser", action="store_true", help="브라우저를 자동으로 열지 않음")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument("--no-update-check", action="store_true", help="새 버전 확인(GitHub 접속)을 하지 않음")
     ap.add_argument("--print-balance", metavar="BROKER", nargs="?", const="", help="서버 없이 잔고를 JSON으로 출력하고 종료")
     a = ap.parse_args()
     if a.print_balance is not None:
@@ -426,6 +465,7 @@ def main():
     Handler.port = port
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.verbose = a.verbose
+    srv.update_check = not a.no_update_check
     url = f"http://127.0.0.1:{port}/?t={Handler.token}"
     print(f"{APP_NAME} v{VERSION}", flush=True)
     print(f"브라우저에서 열기: {url}", flush=True)
