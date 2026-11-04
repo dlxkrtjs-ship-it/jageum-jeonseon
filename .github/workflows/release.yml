@@ -1,0 +1,59 @@
+name: 실행 파일 빌드·배포
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python tests/test_brokers.py
+
+  build:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: jageum-jeonseon-windows.exe
+            sep: ";"
+          - os: macos-latest
+            name: jageum-jeonseon-macos
+            sep: ":"
+          - os: ubuntu-latest
+            name: jageum-jeonseon-linux
+            sep: ":"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pyinstaller==6.10.0
+      - run: pyinstaller --onefile --name jageum-jeonseon --add-data "app${{ matrix.sep }}app" server/warroom.py
+      - name: 이름 정리
+        shell: bash
+        run: |
+          src=dist/jageum-jeonseon; [ -f dist/jageum-jeonseon.exe ] && src=dist/jageum-jeonseon.exe
+          mv "$src" "dist/${{ matrix.name }}"
+      - uses: actions/upload-artifact@v4
+        with: { name: "${{ matrix.name }}", path: "dist/${{ matrix.name }}" }
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: out/*
+          generate_release_notes: true
