@@ -13,7 +13,7 @@ import argparse, json, os, random, re, secrets, socket, sys, threading, time, ur
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.2.1"
+VERSION = "0.3.0"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -303,11 +303,55 @@ def demo_balance(_c):
 
 
 BROKERS = {"kiwoom": kiwoom_balance, "toss": toss_balance, "kis": kis_balance, "demo": demo_balance}
+BROKER_NAMES = {"kiwoom": "키움증권", "toss": "토스증권", "kis": "한국투자증권", "demo": "데모"}
+
+
+def merge_balances(parts):
+    """여러 증권사 잔고를 하나로. 같은 종목(코드, 없으면 이름)은 수량을 더하고 평균단가는 수량 가중 평균."""
+    merged, cash = {}, 0.0
+    for p in parts:
+        cash += p.get("cash") or 0
+        for h in p["holdings"]:
+            k = h.get("code") or h["name"]
+            m = merged.get(k)
+            if not m:
+                merged[k] = dict(h)
+                continue
+            q = m["qty"] + h["qty"]
+            m["avg"] = round((m["avg"] * m["qty"] + h["avg"] * h["qty"]) / q, 2) if q else m["avg"]
+            m["qty"], m["price"] = q, h["price"] or m["price"]
+    return {"cash": cash, "holdings": list(merged.values())}
+
+
+def fetch_all(cfg):
+    ready = [b for b in ("kiwoom", "toss", "kis") if broker_ready(b, cfg.get(b, {}))]
+    if not ready:
+        raise BrokerError("합칠 증권사가 없습니다. 증권사별로 키를 먼저 저장하세요.")
+    parts, errors = [], []
+    for b in ready:
+        try:
+            parts.append(fetch_balance(b))
+        except BrokerError as e:
+            errors.append(f"{BROKER_NAMES[b]}: {e}")
+    if not parts:
+        raise BrokerError(" / ".join(errors))
+    out = merge_balances(parts)
+    out.update(source=" + ".join(p["source"] for p in parts), broker="all", errors=errors,
+               asOf=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    return out
+
+
+def my_public_ip():
+    req = urllib.request.Request("https://api.ipify.org?format=json", headers={"User-Agent": "jageum-jeonseon"})
+    with urllib.request.urlopen(req, timeout=6) as r:
+        return json.loads(r.read().decode()).get("ip", "")
 
 
 def fetch_balance(broker=None):
     cfg = load_config()
     b = broker or cfg.get("broker") or "demo"
+    if b == "all":
+        return fetch_all(cfg)
     if b not in BROKERS:
         raise BrokerError(f"알 수 없는 증권사: {b}")
     c = cfg.get(b, {})
@@ -376,6 +420,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"app": APP_NAME, "version": VERSION, "config": public_config(load_config())})
             if path == "/api/state":
                 return self._send(200, {"state": _read(STATE_FILE) or None})
+            if path == "/api/myip":
+                try:
+                    return self._send(200, {"ip": my_public_ip()})
+                except Exception:
+                    return self._send(502, {"error": "공인 IP를 확인하지 못했습니다. 인터넷 연결을 확인하세요."})
             if path == "/api/update":
                 return self._send(200, check_update(self.server.update_check))
             if path == "/api/balance":
@@ -409,7 +458,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/config":
             cfg = load_config()
             b = body.get("broker")
-            if b in BROKERS:
+            if b in BROKERS or b == "all":
                 cfg["broker"] = b
             for name, fields in (("kiwoom", ("appkey", "secretkey", "env")), ("toss", ("client_id", "client_secret", "account_seq")),
                                  ("kis", ("app_key", "app_secret", "account", "mock"))):
@@ -437,7 +486,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/test":
             try:
                 r = fetch_balance(body.get("broker"))
-                return self._send(200, {"ok": True, "count": len(r["holdings"]), "cash": r["cash"], "source": r["source"]})
+                return self._send(200, {"ok": True, "count": len(r["holdings"]), "cash": r["cash"], "source": r["source"], "errors": r.get("errors", [])})
             except BrokerError as e:
                 return self._send(502, {"error": str(e)})
         self._send(404, {"error": "없는 경로"})

@@ -471,7 +471,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
       <section class="panel" aria-label="계좌 연결" id="rLink" hidden>
         <div class="panel-h"><h2>계좌 연결</h2><span class="tag" id="lkState">연결 안 됨</span></div>
         <div class="panel-b lk">
-          <label class="lkf">증권사<select id="lkBroker"><option value="kiwoom">키움증권</option><option value="toss">토스증권</option><option value="kis">한국투자증권</option><option value="demo">데모 (가상 데이터)</option></select></label>
+          <label class="lkf">증권사<select id="lkBroker"><option value="kiwoom">키움증권</option><option value="toss">토스증권</option><option value="kis">한국투자증권</option><option value="all">여러 증권사 합치기</option><option value="demo">데모 (가상 데이터)</option></select></label>
           <div class="lkg" data-b="kiwoom">
             <label class="lkf">App Key<input id="kw_appkey" autocomplete="off" spellcheck="false"></label>
             <label class="lkf">Secret Key<input id="kw_secretkey" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
@@ -490,11 +490,13 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
             <label class="lkf">계좌번호<input id="ks_account" placeholder="12345678-01" autocomplete="off"></label>
             <label class="lkc"><input type="checkbox" id="ks_mock"> 모의투자 계좌</label>
           </div>
+          <div class="lkg" data-b="all"><p class="note">키를 저장해 둔 증권사(키움·토스·한국투자)의 잔고를 모두 불러와 한 전장에 합칩니다. 같은 종목은 수량을 더하고 평균단가는 수량 가중 평균으로 계산합니다. 먼저 증권사를 하나씩 골라 키를 저장하세요.</p></div>
           <div class="lkg" data-b="demo"><p class="note">키 없이 가상 잔고로 체험합니다. 동기화할 때마다 시세가 조금씩 움직입니다.</p></div>
           <div class="lkrow">
             <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
             <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
             <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
+            <button type="button" class="btn2 ghost" id="lkIp" title="토스·키움에 허용 IP로 등록할 주소를 확인합니다 (ipify.org에 한 번 접속)">내 공인 IP 확인</button>
             <label class="lkc"><input type="checkbox" id="lkNotify"> 함락·위급 알림</label>
             <label class="lkf inl">자동<select id="lkAuto"><option value="0">끔</option><option value="60">1분마다</option><option value="300">5분마다</option><option value="900">15분마다</option></select></label>
           </div>
@@ -2614,14 +2616,14 @@ function loadLocal(){try{const v=localStorage.getItem('wr-real');if(!v)return nu
 const LK={token:null,timer:null,cfg:null};
 async function lkApi(path,opt={}){const r=await fetch(path,Object.assign({},opt,{headers:Object.assign({'X-Warroom-Token':LK.token,'Content-Type':'application/json'},opt.headers||{})}));const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
 const LKF={kiwoom:[['appkey','kw_appkey'],['secretkey','kw_secretkey'],['env','kw_env']],toss:[['client_id','ts_client_id'],['client_secret','ts_client_secret'],['account_seq','ts_account_seq']],kis:[['app_key','ks_app_key'],['app_secret','ks_app_secret'],['account','ks_account'],['mock','ks_mock']]};
-const LKN={kiwoom:'키움증권',toss:'토스증권',kis:'한국투자증권',demo:'데모'};
+const LKN={kiwoom:'키움증권',toss:'토스증권',kis:'한국투자증권',demo:'데모',all:'여러 증권사'};
 function lkShow(){const b=$('lkBroker').value;document.querySelectorAll('#rLink .lkg').forEach(g=>g.hidden=g.dataset.b!==b)}
 function lkFill(cfg){LK.cfg=cfg;$('lkBroker').value=cfg.broker||'demo';for(const b in LKF){const c=(cfg.brokers||{})[b]||{};for(const[k,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=!!c[k];else if(el.type==='password')el.placeholder=c._secretSet?'저장됨 · 비워 두면 기존 값 유지':'';else if(c[k]!=null)el.value=c[k]}}lkShow()}
 function lkMsg(t,bad){const m=$('lkMsg');m.textContent=t;m.style.color=bad?'var(--down)':''}
 async function lkSync(quiet){
   if(!LK.token)return;if(!quiet)lkMsg('잔고를 불러오는 중…');
   try{const j=await lkApi('/api/balance');parsed=(j.holdings||[]).map(h=>({name:h.name,code:h.code||'',qty:+h.qty,avg:+h.avg,price:+h.price||+h.avg})).filter(h=>h.name&&h.qty>0);parsedCash=j.cash;
-    applyParsed(true);const d=new Date();$('lkState').textContent=`${j.source} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 동기화`;lkMsg(`${j.holdings.length}개 종목과 예수금을 반영했습니다.`)}
+    applyParsed(true);const d=new Date();$('lkState').textContent=`${j.source} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} 동기화`;lkMsg(`${j.holdings.length}개 종목과 예수금을 반영했습니다.${(j.errors||[]).length?' 일부 실패: '+j.errors.join(' / '):''}`,(j.errors||[]).length>0)}
   catch(e){lkMsg('동기화 실패: '+e.message,true);$('lkState').textContent='동기화 실패'}
 }
 function lkAuto(){clearInterval(LK.timer);const s=+$('lkAuto').value;try{localStorage.setItem('wr-auto',String(s))}catch(e){}if(s>0)LK.timer=setInterval(()=>{if(!document.hidden)lkSync(true)},s*1000)}
@@ -2637,9 +2639,10 @@ async function initLink(){
   $('lkSave').onclick=async()=>{const b=$('lkBroker').value,body={broker:b,brokers:{}};
     if(LKF[b]){body.brokers[b]={};for(const[k,id]of LKF[b]){const el=$(id);body.brokers[b][k]=el.type==='checkbox'?el.checked:el.value}}
     lkMsg('저장하고 증권사에 연결해 보는 중…');try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify(body)});lkFill(r.config);document.querySelectorAll('#rLink input[type=password]').forEach(i=>i.value='');
-      const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인. 「지금 동기화」로 반영하세요.`)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
+      const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인.${(tst.errors||[]).length?' 일부 실패: '+tst.errors.join(' / '):''} 「지금 동기화」로 반영하세요.`,(tst.errors||[]).length>0)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
   $('lkSync').onclick=()=>lkSync(false);
-  $('lkForget').onclick=async e=>{const b=$('lkBroker').value,btn=e.currentTarget;if(b==='demo'){lkMsg('데모는 저장된 키가 없습니다.');return}
+  $('lkIp').onclick=async()=>{lkMsg('공인 IP를 확인하는 중…');try{const r=await lkApi('/api/myip');lkMsg(`이 PC의 공인 IP: ${r.ip} — 증권사 Open API 설정의 허용 IP에 이 주소를 등록하세요. 집·회사·카페 등 인터넷이 바뀌면 IP도 바뀝니다.`)}catch(e){lkMsg(e.message,true)}};
+  $('lkForget').onclick=async e=>{const b=$('lkBroker').value,btn=e.currentTarget;if(b==='demo'||b==='all'){lkMsg('삭제할 증권사를 하나 골라 주세요.');return}
     if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent=`${LKN[b]} 키를 정말 삭제할까요? 한 번 더 누르세요`;setTimeout(()=>{delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제'},4000);return}
     delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제';
     try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify({forget:b})});for(const[,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=false;else el.value=''}lkFill(r.config);lkMsg(`${LKN[b]} 키와 토큰을 이 PC에서 삭제했습니다.`)}catch(err){lkMsg('삭제 실패: '+err.message,true)}};
@@ -2649,7 +2652,7 @@ async function initLink(){
       const p=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(p!=='granted'){el.checked=false;lkMsg('브라우저 알림이 허용되지 않았습니다. 주소창의 사이트 설정에서 알림을 허용하세요.',true);return}lkMsg('자동 동기화 중 적성 함락이나 아군 성 위급이 생기면 알려드립니다(이 탭이 뒤에 있을 때).')}
     try{localStorage.setItem('wr-notify',el.checked?'1':'0')}catch(err){}});
   try{$('lkAuto').value=localStorage.getItem('wr-auto')||'0'}catch(e){}$('lkAuto').addEventListener('change',lkAuto);lkAuto();
-  const cb=st.config.broker||'demo',ready=cb==='demo'||((st.config.brokers||{})[cb]||{})._ready;
+  const cb=st.config.broker||'demo',ready=cb==='demo'||(cb==='all'?Object.values(st.config.brokers||{}).some(x=>x._ready):((st.config.brokers||{})[cb]||{})._ready);
   if(ready&&cb!=='demo')lkSync(true);else lkMsg(cb==='demo'?'증권사를 고르고 키를 넣은 뒤 「저장하고 연결 시험」을 누르세요. 데모로 먼저 체험하려면 「지금 동기화」를 누르세요.':'');
 }
 R=loadLocal()||EXAMPLE();

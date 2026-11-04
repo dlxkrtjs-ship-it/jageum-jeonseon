@@ -24,4 +24,12 @@ mock_brokers.H.hits["accounts"] = 0
 r = warroom.fetch_balance()
 assert r["cash"] == 3000000 and warroom.cached_token("toss:CID99999") == "TSTOKEN", r
 assert mock_brokers.H.hits["accounts"] == 2, "429 뒤 재시도"
-print("ok: 키움", len(k["holdings"]), "종목 / 토스", len(t["holdings"]), "종목 / 토큰 폐기·호출 한도 재시도")
+# 여러 증권사 합치기: 같은 종목은 수량 합산·평균단가 가중 평균, 예수금 합산
+warroom.save_config({"broker": "all", "kiwoom": {"appkey": "APPKEY1234", "secretkey": "S", "env": "real"},
+                     "toss": {"client_id": "CID99999", "client_secret": "S"}})
+m = warroom.fetch_balance()
+ss = [h for h in m["holdings"] if h["code"] == "005930"][0]
+assert ss["qty"] == 85 and ss["avg"] == round((72000 * 80 + 70000 * 5) / 85, 2), ss
+assert m["cash"] == 5200000 + 3000000 and m["broker"] == "all" and not m["errors"], m
+assert len(m["holdings"]) == 4, [h["code"] for h in m["holdings"]]
+print("ok: 키움", len(k["holdings"]), "종목 / 토스", len(t["holdings"]), "종목 / 토큰 폐기·호출 한도 재시도 / 여러 증권사 합치기")
