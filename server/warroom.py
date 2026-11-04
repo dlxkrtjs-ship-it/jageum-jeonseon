@@ -13,7 +13,7 @@ import argparse, json, os, random, secrets, socket, sys, threading, time, urllib
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
@@ -427,9 +427,9 @@ def main():
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     srv.verbose = a.verbose
     url = f"http://127.0.0.1:{port}/?t={Handler.token}"
-    print(f"{APP_NAME} v{VERSION}")
-    print(f"브라우저에서 열기: {url}")
-    print("이 창을 닫으면 종료됩니다. (Ctrl+C)")
+    print(f"{APP_NAME} v{VERSION}", flush=True)
+    print(f"브라우저에서 열기: {url}", flush=True)
+    print("이 창을 닫으면 종료됩니다. (Ctrl+C)", flush=True)
     if not a.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
