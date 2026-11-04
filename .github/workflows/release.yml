@@ -2,7 +2,9 @@ name: 실행 파일 빌드·배포
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
+    paths: ["server/**", "app/**", "tests/**", ".github/workflows/release.yml"]
   workflow_dispatch:
 
 permissions:
@@ -48,12 +50,19 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: 버전 읽기 (server/warroom.py 의 VERSION)
+        id: v
+        run: echo "tag=v$(python3 -c "import re;print(re.search(r'VERSION = \"([^\"]+)\"',open('server/warroom.py',encoding='utf-8').read()).group(1))")" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with: { path: out, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.v.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: 자금전선 작전상황실 ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.v.outputs.tag }}
           files: out/*
           generate_release_notes: true
+          make_latest: true
