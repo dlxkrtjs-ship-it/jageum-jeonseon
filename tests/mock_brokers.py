@@ -34,9 +34,16 @@ class H(BaseHTTPRequestHandler):
             if api == "kt00001":
                 return self.j(200, {"return_code": 0, "entr": "000000005200000", "d2_entra": "000000005100000"})
         self.j(404, {"error": {"message": "no route"}})
+    hits = {"accounts": 0}
     def do_GET(self):
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
+        if self.headers["Authorization"] == "Bearer OLDTOKEN":   # 폐기된 토큰
+            return self.j(401, {"error": {"code": "token-revoked", "message": "token revoked"}})
         assert self.headers["Authorization"] == "Bearer TSTOKEN"
+        if u.path == "/api/v1/accounts":
+            H.hits["accounts"] += 1
+            if H.hits["accounts"] == 1:                           # 첫 호출은 호출 한도 초과
+                return self.j(429, {"error": {"message": "rate limited"}}, {"Retry-After": "0"})
         if u.path == "/api/v1/accounts":
             return self.j(200, {"result": [{"accountNo": "123-45", "accountSeq": 7, "accountType": "GENERAL"}]})
         if u.path == "/api/v1/holdings":

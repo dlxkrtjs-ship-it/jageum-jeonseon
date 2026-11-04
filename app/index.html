@@ -495,6 +495,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
             <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
             <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
             <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
+            <label class="lkc"><input type="checkbox" id="lkNotify"> 함락·위급 알림</label>
             <label class="lkf inl">자동<select id="lkAuto"><option value="0">끔</option><option value="60">1분마다</option><option value="300">5분마다</option><option value="900">15분마다</option></select></label>
           </div>
           <p class="toast" id="lkMsg" role="status"></p>
@@ -2294,6 +2295,7 @@ function journalDiff(){
   for(const id in R.lastStates)if(!seen[id]){add(`${R.lastStates[id].name} 철군 (전선 철수)`,'');cel(`${R.lastStates[id].name} 전선에서 철군`,false);delete R.lastStates[id]}
   {const sv=sovOf(c.ret)[1];if(R.lastSov&&R.lastSov!==sv&&c.hs.length){const up=SOV.findIndex(x=>x[1]===sv)<SOV.findIndex(x=>x[1]===R.lastSov);add(`군주 칭호 ${up?'상승':'하락'}: ${R.lastSov} → ${sv}`,up?'win':'lose');cel(up?`${sv}(${sovOf(c.ret)[2]})에 오르시다!`:`칭호가 ${sv}로 내려앉다`,up)}if(c.hs.length)R.lastSov=sv}
   R.journal=R.journal.slice(-200);
+  notifyNew(R.journal.filter(j=>j.ts===now&&(j.k==='win'||j.k==='lose')));
   if(pend.length>3){const up=pend.filter(x=>x[1]).length;celebrate(`전황 변화 ${pend.length}건 (길보 ${up} · 흉보 ${pend.length-up}) — 출정 일지를 확인하세요`,up>=pend.length-up)}else pend.forEach(x=>celebrate(x[0],x[1]));
 }
 const OFFICE=r=>r>=.3?['대장군','大將軍']:r>=.15?['장군','將軍']:r>=.05?['교위','校尉']:r>=0?['도위','都尉']:r>-.1?['백인장','百人長']:r>-.2?['패장','敗將']:['포로 위기','危'];
@@ -2423,6 +2425,10 @@ function cardImage(h){
   g.fillStyle='#1f1a14';g.font='400 30px "Nanum Brush Script",cursive';g.fillText(`${of}으로 봉하노라`,56,376);
   g.fillStyle='#6a5e4c';g.font='500 15px "Noto Serif KR",serif';g.textAlign='right';g.fillText(`자금전선 작전상황실 · ${today()}`,W-56,376);
   return new Promise(r=>c.toBlob(r,'image/png'));
+}
+function notifyNew(list){
+  if(!list.length||!window.Notification||Notification.permission!=='granted')return;let on=false;try{on=localStorage.getItem('wr-notify')==='1'}catch(e){}if(!on||!document.hidden)return;
+  const n=new Notification(list.length>1?`전황 급변 ${list.length}건`:'전황 급변',{body:list.slice(0,4).map(j=>j.text).join('\n'),tag:'jageum-jeonseon'});n.onclick=()=>{window.focus();n.close()};
 }
 let jFilter='all';
 function renderJournal(){
@@ -2638,6 +2644,10 @@ async function initLink(){
     delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제';
     try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify({forget:b})});for(const[,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=false;else el.value=''}lkFill(r.config);lkMsg(`${LKN[b]} 키와 토큰을 이 PC에서 삭제했습니다.`)}catch(err){lkMsg('삭제 실패: '+err.message,true)}};
   lkApi('/api/update').then(u=>{if(u&&u.newer){const el=$('lkUpd');el.hidden=false;el.innerHTML=`새 버전 <b>${esc(u.latest)}</b>이 나왔습니다 (지금 ${esc(u.current)}). <a href="${esc(u.url)}" target="_blank" rel="noopener">내려받기</a>`}}).catch(()=>{});
+  try{$('lkNotify').checked=localStorage.getItem('wr-notify')==='1'&&window.Notification&&Notification.permission==='granted'}catch(e){}
+  $('lkNotify').addEventListener('change',async e=>{const el=e.target;if(el.checked){if(!window.Notification){lkMsg('이 브라우저는 알림을 지원하지 않습니다.',true);el.checked=false;return}
+      const p=Notification.permission==='granted'?'granted':await Notification.requestPermission();if(p!=='granted'){el.checked=false;lkMsg('브라우저 알림이 허용되지 않았습니다. 주소창의 사이트 설정에서 알림을 허용하세요.',true);return}lkMsg('자동 동기화 중 적성 함락이나 아군 성 위급이 생기면 알려드립니다(이 탭이 뒤에 있을 때).')}
+    try{localStorage.setItem('wr-notify',el.checked?'1':'0')}catch(err){}});
   try{$('lkAuto').value=localStorage.getItem('wr-auto')||'0'}catch(e){}$('lkAuto').addEventListener('change',lkAuto);lkAuto();
   const cb=st.config.broker||'demo',ready=cb==='demo'||((st.config.brokers||{})[cb]||{})._ready;
   if(ready&&cb!=='demo')lkSync(true);else lkMsg(cb==='demo'?'증권사를 고르고 키를 넣은 뒤 「저장하고 연결 시험」을 누르세요. 데모로 먼저 체험하려면 「지금 동기화」를 누르세요.':'');

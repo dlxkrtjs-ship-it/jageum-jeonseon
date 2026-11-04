@@ -13,7 +13,7 @@ import argparse, json, os, random, re, secrets, socket, sys, threading, time, ur
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -82,10 +82,16 @@ def broker_ready(b, c):
 
 # ---------------------------------------------------------------- HTTP 도우미
 class BrokerError(Exception):
+    def __init__(self, msg, status=None):
+        super().__init__(msg)
+        self.status = status
+
+
+class TokenExpired(BrokerError):
     pass
 
 
-def http_json(method, url, headers=None, body=None, form=False, want_headers=False):
+def http_json(method, url, headers=None, body=None, form=False, want_headers=False, _try=0):
     data = None
     h = dict(headers or {})
     if body is not None:
@@ -105,11 +111,22 @@ def http_json(method, url, headers=None, body=None, form=False, want_headers=Fal
             payload = json.loads(e.read().decode("utf-8") or "{}")
         except ValueError:
             payload = {}
+        if (e.code == 429 or e.code >= 500) and _try < 2:
+            try:
+                wait = min(5.0, float(e.headers.get("Retry-After") or 0)) or (1.0 + _try)
+            except ValueError:
+                wait = 1.0 + _try
+            time.sleep(wait)
+            return http_json(method, url, headers, body, form, want_headers, _try + 1)
         msg = (payload.get("error") or {}).get("message") if isinstance(payload.get("error"), dict) else None
         msg = msg or payload.get("return_msg") or payload.get("msg1") or payload.get("error_description") or f"HTTP {e.code}"
+        if e.code == 401:
+            raise TokenExpired(msg, 401)
         if e.code == 403:
             msg += " — 증권사에 등록한 허용 IP와 지금 PC의 IP가 같은지 확인하세요."
-        raise BrokerError(msg)
+        if e.code == 429:
+            msg = "증권사 호출 한도를 넘었습니다. 자동 동기화 간격을 늘려 주세요."
+        raise BrokerError(msg, e.code)
     except urllib.error.URLError as e:
         raise BrokerError(f"증권사 서버에 연결하지 못했습니다: {e.reason}")
 
@@ -134,6 +151,13 @@ def token_store(key, token, exp_ts):
     data = _read(TOKEN_FILE)
     data[key] = {"token": token, "exp": exp_ts}
     _write_private(TOKEN_FILE, data)
+
+
+def drop_tokens(prefix):
+    data = _read(TOKEN_FILE)
+    kept = {k: v for k, v in data.items() if not k.startswith(prefix)}
+    if kept != data:
+        _write_private(TOKEN_FILE, kept)
 
 
 def cached_token(key):
@@ -290,7 +314,14 @@ def fetch_balance(broker=None):
     if b != "demo" and not broker_ready(b, c):
         raise BrokerError("API 키가 설정되지 않았습니다. 계좌 연결 설정에서 키를 넣어 주세요.")
     with LOCK:
-        out = BROKERS[b](c)
+        try:
+            out = BROKERS[b](c)
+        except TokenExpired:
+            drop_tokens(b + ":")  # 만료·폐기된 토큰을 버리고 한 번만 다시 발급
+            try:
+                out = BROKERS[b](c)
+            except TokenExpired as e:
+                raise BrokerError(f"인증이 거부되었습니다({e}). 키가 맞는지, 다른 곳에서 같은 키로 토큰을 새로 받지 않았는지 확인하세요.", 401)
     out["broker"] = b
     out["asOf"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     return out
