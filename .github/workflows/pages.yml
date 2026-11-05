@@ -22,7 +22,7 @@ jobs:
       enabled: ${{ steps.p.outputs.enabled }}
     steps:
       - id: p
-        name: Pages가 켜져 있는지 확인 (Settings → Pages → Source: GitHub Actions)
+        name: "Pages가 켜져 있는지 확인 (Settings → Pages → Source를 GitHub Actions로)"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
