@@ -44,6 +44,12 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install pyinstaller==6.10.0
       - run: pyinstaller --onefile --name jageum-jeonseon --add-data "app${{ matrix.sep }}app" server/warroom.py
+      - name: 실행 파일 점검 (실제로 켜서 화면·3D 엔진·보안 검사 확인)
+        shell: bash
+        env: { PYTHONIOENCODING: utf-8 }
+        run: |
+          bin=dist/jageum-jeonseon; [ -f dist/jageum-jeonseon.exe ] && bin=dist/jageum-jeonseon.exe
+          "$bin" --self-test
       - name: 이름 정리
         shell: bash
         run: |

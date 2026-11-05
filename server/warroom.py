@@ -13,7 +13,7 @@ import argparse, json, os, random, re, secrets, socket, sys, threading, time, ur
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -526,12 +526,46 @@ def free_port(preferred):
     raise SystemExit("빈 포트를 찾지 못했습니다.")
 
 
+def self_test():
+    """빌드된 실행 파일 점검: 화면·3D 엔진 파일이 들어 있고 서버·보안 검사가 동작하는지."""
+    port = free_port(18765)
+    Handler.token, Handler.port = "SELFTEST", port
+    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    srv.verbose, srv.update_check = False, False
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+    def get(path, token=None):
+        req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", headers={"X-Warroom-Token": token} if token else {})
+        try:
+            with op.open(req, timeout=10) as r:
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, b""
+    checks = [("화면", get("/")[0] == 200 and b"<title>" in get("/")[1]),
+              ("3D 엔진", get("/vendor/three.min.js")[0] == 200 and len(get("/vendor/three.min.js")[1]) > 500000),
+              ("토큰 없는 API 거부", get("/api/status")[0] == 401),
+              ("데모 잔고", demo_balance({})["holdings"] != [])]
+    srv.shutdown()
+    for name, ok in checks:
+        print(("ok   " if ok else "FAIL ") + name, flush=True)
+    if not all(ok for _, ok in checks):
+        raise SystemExit(1)
+    print("self-test 통과", flush=True)
+
+
 def main():
+    for st in (sys.stdout, sys.stderr):  # 한글을 못 찍는 콘솔에서도 죽지 않게
+        try:
+            st.reconfigure(errors="replace")
+        except Exception:
+            pass
     ap = argparse.ArgumentParser(description=APP_NAME + " 로컬 실행기")
     ap.add_argument("--port", type=int, default=8787)
     ap.add_argument("--no-browser", action="store_true", help="브라우저를 자동으로 열지 않음")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--no-update-check", action="store_true", help="새 버전 확인(GitHub 접속)을 하지 않음")
+    ap.add_argument("--self-test", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--print-balance", metavar="BROKER", nargs="?", const="", help="서버 없이 잔고를 JSON으로 출력하고 종료")
     a = ap.parse_args()
     if a.print_balance is not None:
@@ -540,6 +574,8 @@ def main():
         except BrokerError as e:
             raise SystemExit(f"오류: {e}")
         return
+    if a.self_test:
+        return self_test()
     port = free_port(a.port)
     Handler.token = secrets.token_urlsafe(24)
     Handler.port = port
