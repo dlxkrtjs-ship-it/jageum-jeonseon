@@ -7,11 +7,17 @@
 | 내 컴퓨터 | 내려받기 | 실행 |
 |---|---|---|
 | 🪟 **Windows** | [**Windows용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Windows.exe) | 더블클릭 → 파란 경고창이 뜨면 「추가 정보」 → 「실행」 |
-| 🍎 **Mac (M1·M2·M3·M4)** | [**Mac(M 칩)용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Mac-AppleSilicon.zip) | 압축 풀기 → 「실행하기」 더블클릭 |
-| 🍎 **Mac (인텔)** | [**Mac(인텔)용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Mac-Intel.zip) | 압축 풀기 → 「실행하기」 더블클릭 |
+| 🍎 **Mac (M 칩·인텔 모두)** | 아래 **한 줄 설치** (권장) | 터미널에 붙여넣기 → 다음부터는 바탕화면 「자금전선 실행」 더블클릭 |
 | 🐧 Linux | [Linux용 받기](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Linux) | `chmod +x` 후 실행 |
 
-Mac 칩 확인: 사과(🍎) 메뉴 → 「이 Mac에 관하여」 → "Apple M…"이면 M 칩, "Intel"이면 인텔. 전체 버전 목록은 [Releases](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases)에 있습니다.
+### 🍎 Mac은 한 줄 설치를 쓰세요
+Mac은 인터넷에서 받은 서명 없는 앱을 「악성 코드가 없음을 확인할 수 없습니다」라며 막습니다. **터미널**(Spotlight에서 "터미널" 검색)을 열고 아래 한 줄을 붙여넣고 엔터를 누르세요. 내 Mac 칩에 맞는 버전을 받아 설치하고 바로 실행합니다.
+```bash
+curl -fsSL https://raw.githubusercontent.com/dlxkrtjs-ship-it/jageum-jeonseon/main/install.sh | bash
+```
+설치 후에는 바탕화면의 **「자금전선 실행」**을 더블클릭하면 됩니다. 브라우저로 zip을 받았다면: 경고창에서 「완료」 → 시스템 설정 → 개인정보 보호 및 보안 → 아래쪽 「그래도 열기」.
+
+Mac 칩 확인(직접 zip을 받을 때만 필요): 사과(🍎) 메뉴 → 「이 Mac에 관하여」 → "Apple M…"이면 M 칩, "Intel"이면 인텔. 전체 버전 목록은 [Releases](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases)에 있습니다.
 
 ![입체 전장](docs/battlefield-3d.png)
 
