@@ -13,13 +13,14 @@ import argparse, json, os, random, re, secrets, socket, sys, threading, time, ur
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 TOKEN_FILE = os.path.join(CONFIG_DIR, "tokens.json")
 STATE_FILE = os.path.join(CONFIG_DIR, "state.json")
+SESSION_FILE = os.path.join(CONFIG_DIR, "session.json")
 LOCK = threading.Lock()
 
 
@@ -416,6 +417,8 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/"):
             if not self._api_ok():
                 return
+            if path == "/api/ping":
+                return self._send(200, {"app": "jageum-jeonseon", "version": VERSION})
             if path == "/api/status":
                 return self._send(200, {"app": APP_NAME, "version": VERSION, "config": public_config(load_config())})
             if path == "/api/state":
@@ -483,6 +486,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"error": "잘못된 상태"})
             _write_private(STATE_FILE, body["state"])
             return self._send(200, {"ok": True})
+        if path == "/api/shutdown":
+            self._send(200, {"ok": True})
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+            return
         if path == "/api/test":
             try:
                 r = fetch_balance(body.get("broker"))
@@ -513,6 +520,22 @@ def check_update(enabled):
             _UPDATE.update(latest="", url="")
     return {"current": "v" + VERSION, "latest": _UPDATE.get("latest"), "url": _UPDATE.get("url"),
             "newer": bool(_UPDATE.get("latest")) and _ver(_UPDATE["latest"]) > _ver(VERSION)}
+
+
+def running_instance():
+    """이미 켜져 있는 실행기가 있으면 그 주소를 돌려준다(같은 기록 파일을 두 서버가 동시에 쓰지 않도록)."""
+    s = _read(SESSION_FILE)
+    if not s.get("port") or not s.get("token"):
+        return None
+    try:
+        op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        req = urllib.request.Request(f"http://127.0.0.1:{s['port']}/api/ping", headers={"X-Warroom-Token": s["token"]})
+        with op.open(req, timeout=1.5) as r:
+            if json.loads(r.read().decode()).get("app") == "jageum-jeonseon":
+                return f"http://127.0.0.1:{s['port']}/?t={s['token']}"
+    except Exception:
+        pass
+    return None
 
 
 def free_port(preferred):
@@ -576,6 +599,13 @@ def main():
         return
     if a.self_test:
         return self_test()
+    existing = running_instance()
+    if existing:
+        print(f"{APP_NAME}이(가) 이미 실행 중입니다. 열려 있는 실행기로 연결합니다.", flush=True)
+        print(f"브라우저에서 열기: {existing}", flush=True)
+        if not a.no_browser:
+            webbrowser.open(existing)
+        return
     port = free_port(a.port)
     Handler.token = secrets.token_urlsafe(24)
     Handler.port = port
@@ -588,10 +618,18 @@ def main():
     print("이 창을 닫으면 종료됩니다. (Ctrl+C)", flush=True)
     if not a.no_browser:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    _write_private(SESSION_FILE, {"port": port, "token": Handler.token, "pid": os.getpid()})
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
         pass
+    finally:
+        try:
+            if _read(SESSION_FILE).get("token") == Handler.token:
+                os.remove(SESSION_FILE)
+        except OSError:
+            pass
+        print("실행기를 종료했습니다.", flush=True)
 
 
 if __name__ == "__main__":

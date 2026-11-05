@@ -19,6 +19,7 @@ jobs:
         with: { python-version: "3.12" }
       - run: python tests/test_brokers.py
       - run: python tests/test_server.py
+      - run: python tests/test_instance.py
 
   ui:
     runs-on: ubuntu-latest

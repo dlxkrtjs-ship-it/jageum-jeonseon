@@ -470,6 +470,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
             <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
             <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
             <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
+            <button type="button" class="btn2 ghost" id="lkQuit" title="실행기(로컬 서버)를 끕니다">실행기 끄기</button>
             <button type="button" class="btn2 ghost" id="lkIp" title="토스·키움에 허용 IP로 등록할 주소를 확인합니다 (ipify.org에 한 번 접속)">내 공인 IP 확인</button>
             <label class="lkc"><input type="checkbox" id="lkNotify"> 함락·위급 알림</label>
             <label class="lkc" title="한국 시간 평일 08:00~20:00(정규장·넥스트레이드)에만 자동 동기화. 공휴일은 따로 거르지 않습니다."><input type="checkbox" id="lkMkt" checked> 장 시간에만</label>
@@ -537,7 +538,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
             <h2>전선 지도</h2>
             <span id="regime" class="pill neutral">전황</span>
           </div>
-          <button class="go" id="advance" type="button">작전 개시 ▶ 다음 달</button>
+          <button class="go" id="advance" type="button">출진 ▶ 다음 달</button>
         </div>
         <div class="mapwrap">
           <svg id="map" viewBox="0 0 800 460" role="group" aria-label="다섯 개 전선"></svg>
@@ -567,15 +568,15 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
           </div>
         </section>
         <section class="panel" aria-label="전투 일지">
-          <div class="panel-h"><h2>전투 일지</h2><button class="reset" id="reset" type="button">새 작전</button></div>
+          <div class="panel-h"><h2>전투 일지</h2><button class="reset" id="reset" type="button">새 출정</button></div>
           <div class="panel-b"><ul class="log" id="log"></ul></div>
         </section>
       </div>
     </div>
 
     <div class="col">
-      <section class="panel" aria-label="징집소">
-        <div class="panel-h"><h2>징집소</h2><span class="tag">국고 자금으로 부대 편성</span></div>
+      <section class="panel" aria-label="모병소">
+        <div class="panel-h"><h2>모병소</h2><span class="tag">군자금으로 병사를 모아 부대 편성</span></div>
         <div class="panel-b">
           <div class="units" id="units"></div>
           <p class="udesc" id="udesc"></p>
@@ -588,16 +589,16 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
               <button type="button" data-p="50">50%</button>
               <button type="button" data-p="100">국고 전액</button>
             </div>
-            <button class="go recruit" id="recruit" type="button">징집</button>
+            <button class="go recruit" id="recruit" type="button">모병</button>
           </div>
         </div>
       </section>
 
-      <section class="panel" aria-label="부대 명부">
-        <div class="panel-h"><h2>부대 명부</h2><span class="tag" id="rosterTag"></span></div>
+      <section class="panel" aria-label="군 명부">
+        <div class="panel-h"><h2>군 명부</h2><span class="tag" id="rosterTag"></span></div>
         <div class="panel-b"><div class="roster" id="roster"></div></div>
       </section>
-      <p class="note">모든 시세와 사건은 무작위로 만든 가상 데이터입니다. 실제 투자 조언이 아닙니다. 징집 수수료 0.1%, 재배치 0.2%, 퇴각(매도) 0.3%, 국고 이자 월 0.2%.</p>
+      <p class="note">모든 시세와 사건은 무작위로 만든 가상 데이터입니다. 실제 투자 조언이 아닙니다. 모병 수수료 0.1%, 재배치 0.2%, 퇴각(매도) 0.3%, 국고 이자 월 0.2%.</p>
     </div>
   </div>
   </div>
@@ -610,7 +611,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
     <svg id="dbStars" viewBox="0 0 200 40" height="40" aria-hidden="true"></svg>
     <div class="rank" id="dbRank"></div>
     <dl id="dbStats"></dl>
-    <button class="go" id="dbRestart" type="button" style="justify-content:center">새 작전 개시</button>
+    <button class="go" id="dbRestart" type="button" style="justify-content:center">새 출정</button>
   </div>
 </div>
 
@@ -620,13 +621,13 @@ const START = 1e8, TARGET = 1.5e8, MAX_TURN = 24;
 const FEE_RECRUIT=0.001, FEE_MOVE=0.002, FEE_RETREAT=0.003, CASH_RATE=0.002;
 
 const UNITS = {
-  inf:{name:'보병연대', short:'보병', ech:'III', asset:'채권·예금형', lev:0.25, base:0.0025, noise:0.005, risk:1, power:1,
+  inf:{name:'창병대', short:'보병', ech:'III', asset:'채권·예금형', lev:0.25, base:0.0025, noise:0.005, risk:1, power:1,
        desc:'느리지만 단단합니다. 전선이 무너져도 거의 밀리지 않고 꾸준히 전진합니다. (채권·예금)'},
-  arm:{name:'기갑사단', short:'기갑', ech:'XX', asset:'대형 우량주', lev:1.0, base:0.0005, noise:0.015, risk:2, power:3,
+  arm:{name:'기병대', short:'기갑', ech:'XX', asset:'대형 우량주', lev:1.0, base:0.0005, noise:0.015, risk:2, power:3,
        desc:'전선의 흐름을 그대로 따라가는 주력 부대입니다. (대형 우량주·지수)'},
-  art:{name:'포병여단', short:'포병', ech:'X', asset:'성장주', lev:1.7, base:0.001, noise:0.04, risk:4, power:4,
+  art:{name:'궁병대', short:'포병', ech:'X', asset:'성장주', lev:1.7, base:0.001, noise:0.04, risk:4, power:4,
        desc:'전선 움직임의 1.7배 화력. 맞으면 크게 이기고, 빗나가면 크게 잃습니다. (성장주)'},
-  abn:{name:'공수특전단', short:'공수', ech:'II', asset:'레버리지·고위험', lev:3.0, base:-0.003, noise:0.06, risk:5, power:5,
+  abn:{name:'기습대', short:'공수', ech:'II', asset:'레버리지·고위험', lev:3.0, base:-0.003, noise:0.06, risk:5, power:5,
        desc:'전선 움직임의 3배. 매달 보급 손실이 있고, 병력이 12% 밑으로 떨어지면 궤멸합니다. (레버리지 ETF·코인)'},
 };
 const FRONTS = [
@@ -690,7 +691,7 @@ function newGame(){
   const a1=makeArmy(s,'arm',2e7); a1.front='semi';
   const a2=makeArmy(s,'inf',1e7); a2.front='safe';
   s.history.push({turn:0, net:net(s), bench:START});
-  s.log.unshift({t:'D-DAY', k:'event', text:'작전 개시 준비. 국고 ₩1억. 초기 배치로 기갑사단을 반도체 전선, 보병연대를 안전자산 벙커에 보냈습니다.'});
+  s.log.unshift({t:'D-DAY', k:'event', text:'작전 개시 준비. 국고 ₩1억. 초기 배치로 기병대를 반도체 전선, 창병대를 안전자산 벙커에 보냈습니다.'});
   return s;
 }
 function makeArmy(s,type,amt){
@@ -762,7 +763,7 @@ function advance(){
   s.bench*=1+sum/s.fronts.length;
   const best=s.fronts.reduce((b,f)=>f.last>b.last?f:b), worst=s.fronts.reduce((b,f)=>f.last<b.last?f:b);
   const idle=s.armies.filter(a=>!a.front).length;
-  log(`${reg.label}. 최대 전과 ${FR[best.id].name} ${pct(best.last)}, 최대 피해 ${FR[worst.id].name} ${pct(worst.last)}.${idle?` 예비대 ${idle}개 부대가 놀고 있습니다.`:''}`);
+  log(`${reg.label}. 최대 전과 ${FR[best.id].name} ${pct(best.last)}, 최대 피해 ${FR[worst.id].name} ${pct(worst.last)}.${idle?` 본진에 ${idle}개 부대가 놀고 있습니다.`:''}`);
   for(const f of s.fronts) f.mom = 0.7*f.mom + rnd()*0.012;
   s.nextRegime=pickRegime(s.regime);
   rollIntel(s);
@@ -847,7 +848,7 @@ function renderStats(){
    <div class="stat"><div class="k">작전 기간</div><div class="v">${s.turn} / ${MAX_TURN}개월</div><div class="s" style="color:var(--brass)">목표 ${fmtW(TARGET)}</div></div>`;
   const el=$('regime'); el.className='pill '+s.nextRegime; el.textContent=s.over?'작전 종료':'다음 달 예보: '+reg.label;
   $('advance').disabled=s.over;
-  $('advance').textContent=s.over?'작전 종료':`작전 개시 ▶ ${s.turn+1}개월차`;
+  $('advance').textContent=s.over?'출정 종료':`출진 ▶ ${s.turn+1}개월차`;
 }
 function renderUnits(){
   $('units').innerHTML=Object.entries(UNITS).map(([k,u])=>`
@@ -863,20 +864,20 @@ function renderUnits(){
 function updateAmt(){
   const v=recruitAmount();
   $('amtLabel').textContent=`${$('amt').value}% · ${fmtW(v)}`;
-  const b=$('recruit'); b.textContent=`${UNITS[selUnit].name} 징집 (${fmtW(v)})`; b.disabled=state.over||v<1e6;
+  const b=$('recruit'); b.textContent=`${UNITS[selUnit].name} 모병 (${fmtW(v)})`; b.disabled=state.over||v<1e6;
   document.querySelectorAll('.reinf').forEach(x=>{x.textContent=`보급 +${fmtW(v)}`;x.disabled=v<1e6||state.over});
 }
 function renderRoster(){
   const s=state;
   $('rosterTag').textContent=`${s.armies.length}개 부대 · 궤멸 ${s.lost}`;
-  if(!s.armies.length){$('roster').innerHTML='<p class="empty">편성된 부대가 없습니다. 위 징집소에서 첫 부대를 만드세요.</p>';return}
+  if(!s.armies.length){$('roster').innerHTML='<p class="empty">편성된 부대가 없습니다. 위 모병소에서 첫 부대를 모으세요.</p>';return}
   const v=recruitAmount();
   $('roster').innerHTML=s.armies.map(a=>{
     const pl=a.value/a.cost-1, u=UNITS[a.type];
     return `<div class="army${a.id===s.selected?' sel':''}" data-army="${a.id}" tabindex="0" role="button" aria-label="${a.name} 선택">
       <div class="row"><span class="name"><svg width="30" height="20" viewBox="-2 -2 38 26" aria-hidden="true" class="token">${unitSymbol(a.type,0,0)}</svg>${a.name}</span>
         <span class="val">${fmtW(a.value)}</span></div>
-      <div class="row"><span class="where${a.front?'':' idle'}">${a.front?FR[a.front].name+' 주둔':'예비대 대기 · 배치 필요'}</span>
+      <div class="row"><span class="where${a.front?'':' idle'}">${a.front?FR[a.front].name+' 주둔':'본진 대기 · 배치 필요'}</span>
         <span class="num" style="font-size:12px"><span class="${cls(pl)}">누적 ${pct(pl)}</span>${a.lastR!=null&&a.front?` · <span class="${cls(a.lastR)}">지난달 ${pct(a.lastR)}</span>`:''}</span></div>
       ${s.over?'':`<div class="acts">
         <label class="note" for="dep${a.id}" style="position:absolute;left:-9999px">${a.name} 배치 전선</label>
@@ -1859,7 +1860,7 @@ function render3D(c){
 }
 let viewMode=null; try{viewMode=localStorage.getItem('wr-view5')}catch(e){}
 if(!viewMode) viewMode=(window.innerWidth>=600&&window.WR3D)?'3d':'ink';
-const LEG={"front": "<span>전선 위치 = 수익률 (오른쪽으로 밀어낼수록 수익)</span><span>전선 두께 = 투입 자금</span><span>+20% 이상 = 적 진지 점령</span><span>−15% 이하 = 아군 진지 함락 위기</span><span>점선 눈금 = −15 · −5 · 0 · +5 · +20%</span><span>전선을 누르면 판정표에서 강조</span>", "3d": "<span>전선 위치 = 수익률 (적 진지 쪽으로 밀수록 수익)</span><span>전장 폭 = 투입 자금</span><span>+20% 이상 = 적 진지 점령</span><span>−15% 이하 = 아군 진지 함락 위기</span><span>교전 강도 = 접전·손실 정도</span><span>드래그 이동 · 우클릭/두 손가락 회전</span>", "flat": "<span><b class=\"up\">붉은 땅</b> = 우세(수익)</span><span><b class=\"down\">푸른 땅</b> = 열세(손실)</span><span><b style=\"color:var(--brass)\">빗금</b> = 예비대(예수금)</span><span>면적 = 투입 자금</span>", "ink": "<span>전선 위치 = 수익률 (적성 쪽으로 밀수록 전공)</span><span>전장 폭 = 투입 군자금</span><span>+20% 이상 = 적성 함락(大勝)</span><span>−15% 이하 = 아군 성 위급(危急)</span><span>깃발 글자 = 종목 첫 글자 · 敵 = 시장</span><span>군량고 = 예수금</span>"};
+const LEG={"front": "<span>전선 위치 = 수익률 (오른쪽으로 밀어낼수록 수익)</span><span>전선 두께 = 투입 자금</span><span>+20% 이상 = 적 진지 점령</span><span>−15% 이하 = 아군 진지 함락 위기</span><span>점선 눈금 = −15 · −5 · 0 · +5 · +20%</span><span>전선을 누르면 판정표에서 강조</span>", "3d": "<span>전선 위치 = 수익률 (적 진지 쪽으로 밀수록 수익)</span><span>전장 폭 = 투입 자금</span><span>+20% 이상 = 적 진지 점령</span><span>−15% 이하 = 아군 진지 함락 위기</span><span>교전 강도 = 접전·손실 정도</span><span>드래그 이동 · 우클릭/두 손가락 회전</span>", "flat": "<span><b class=\"up\">붉은 땅</b> = 우세(수익)</span><span><b class=\"down\">푸른 땅</b> = 열세(손실)</span><span><b style=\"color:var(--brass)\">빗금</b> = 군량고(예수금)</span><span>면적 = 투입 자금</span>", "ink": "<span>전선 위치 = 수익률 (적성 쪽으로 밀수록 전공)</span><span>전장 폭 = 투입 군자금</span><span>+20% 이상 = 적성 함락(大勝)</span><span>−15% 이하 = 아군 성 위급(危急)</span><span>깃발 글자 = 종목 첫 글자 · 敵 = 시장</span><span>군량고 = 예수금</span>"};
 let inkInit=false;
 function renderInk(c){
   if(!inkInit){window.WRInk.init($('rInk'),{onSelect:k=>{selId=selId===k?null:k;render(false);const tr=document.querySelector(`tr[data-row="${selId}"]`);if(tr)tr.scrollIntoView({block:'nearest',behavior:'smooth'})}});inkInit=true}
@@ -1889,7 +1890,7 @@ function renderMap(c){
     const x=r.x+2,y=r.y+2,w=Math.max(0,r.w-4),h=Math.max(0,r.h-4);
     if(r.key==='cash'){
       out+=`<g><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#hatch)" stroke="var(--brass)" stroke-width="1.3" stroke-dasharray="6 4"/>
-        ${w>70&&h>36?`<text class="rname" x="${x+10}" y="${y+24}" font-size="${Math.min(18,Math.max(12,w/9))}">예비대 집결지</text><text class="rline" x="${x+10}" y="${y+40}">예수금 ${fmtW(R.cash)} · ${c.cashW.toFixed(1)}%</text>`:''}<title>예수금 ${won(R.cash)}</title></g>`;
+        ${w>70&&h>36?`<text class="rname" x="${x+10}" y="${y+24}" font-size="${Math.min(18,Math.max(12,w/9))}">군량고</text><text class="rline" x="${x+10}" y="${y+40}">예수금 ${fmtW(R.cash)} · ${c.cashW.toFixed(1)}%</text>`:''}<title>예수금 ${won(R.cash)}</title></g>`;
       continue;
     }
     const hh=r.hold, b=battle(hh), d=deployJ(hh,c.total);
@@ -1980,8 +1981,8 @@ function renderAlerts(c){
   }
   const tsum=R.holdings.reduce((t,h)=>t+(h.target||0),0);
   if(tsum>100) a.push({sev:2,c:'var(--brass)',t:`목표 비중 합계 ${tsum}%`,d:'100%를 넘습니다. 목표 비중을 다시 나누세요.'});
-  if(R.holdings.length&&c.cashW>40) a.push({sev:1,c:'var(--ink-soft)',t:`예비대 과다 ${c.cashW.toFixed(0)}%`,d:'예수금 비중이 큽니다. 의도한 대기 자금인지 확인하세요.'});
-  if(R.holdings.length&&c.cashW<3) a.push({sev:1,c:'var(--ink-soft)',t:'예비대 고갈',d:`예수금 ${c.cashW.toFixed(1)}%. 추가 매수 여력이 거의 없습니다.`});
+  if(R.holdings.length&&c.cashW>40) a.push({sev:1,c:'var(--ink-soft)',t:`군량 과다 ${c.cashW.toFixed(0)}%`,d:'예수금 비중이 큽니다. 의도한 대기 자금인지 확인하세요.'});
+  if(R.holdings.length&&c.cashW<3) a.push({sev:1,c:'var(--ink-soft)',t:'군량 고갈',d:`예수금 ${c.cashW.toFixed(1)}%. 추가 매수 여력이 거의 없습니다.`});
   a.sort((x,y)=>y.sev-x.sev);
   $('rAlertTag').textContent=a.length?`보고 ${a.length}건`:'이상 무';
   $('rAlerts').innerHTML=a.length?a.map(x=>`<li style="--c:${x.c}"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></li>`).join('')
@@ -2381,6 +2382,9 @@ async function initLink(){
     lkMsg('저장하고 증권사에 연결해 보는 중…');try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify(body)});lkFill(r.config);document.querySelectorAll('#rLink input[type=password]').forEach(i=>i.value='');
       const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인.${(tst.errors||[]).length?' 일부 실패: '+tst.errors.join(' / '):''} 「지금 동기화」로 반영하세요.`,(tst.errors||[]).length>0)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
   $('lkSync').onclick=()=>lkSync(false);
+  $('lkQuit').onclick=async e=>{const btn=e.currentTarget;if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='정말 끌까요? 한 번 더 누르세요';setTimeout(()=>{delete btn.dataset.armed;btn.textContent='실행기 끄기'},4000);return}
+    clearInterval(LK.timer);try{await lkApi('/api/shutdown',{method:'POST',body:'{}'})}catch(err){}LK.token=null;$('lkState').textContent='실행기 꺼짐';lkMsg('실행기를 껐습니다. 이 탭을 닫아도 됩니다. 다시 쓰려면 실행 파일을 다시 켜세요.');
+    document.querySelectorAll('#rLink button,#rLink input,#rLink select').forEach(x=>x.disabled=true)};
   $('lkIp').onclick=async()=>{lkMsg('공인 IP를 확인하는 중…');try{const r=await lkApi('/api/myip');lkMsg(`이 PC의 공인 IP: ${r.ip} — 증권사 Open API 설정의 허용 IP에 이 주소를 등록하세요. 집·회사·카페 등 인터넷이 바뀌면 IP도 바뀝니다.`)}catch(e){lkMsg(e.message,true)}};
   $('lkForget').onclick=async e=>{const b=$('lkBroker').value,btn=e.currentTarget;if(b==='demo'||b==='all'){lkMsg('삭제할 증권사를 하나 골라 주세요.');return}
     if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent=`${LKN[b]} 키를 정말 삭제할까요? 한 번 더 누르세요`;setTimeout(()=>{delete btn.dataset.armed;btn.textContent='이 증권사 키 삭제'},4000);return}
