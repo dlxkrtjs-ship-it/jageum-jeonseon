@@ -387,6 +387,19 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
 @media (max-width:760px){#rLink .lk{grid-template-columns:minmax(0,1fr)}}
 #rLink.folded .panel-b{display:none}
 #rLink,#rGet{border:2px solid var(--up);outline-color:var(--up)}
+.cnsel{font:inherit;font-size:12.5px;background:var(--paper);border:1px solid var(--line);color:var(--ink);padding:4px 6px;max-width:100%}
+.council{display:grid;gap:10px}
+.cn{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;border:1px solid var(--line);background:var(--paper);padding:12px}
+.cnseal{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--paper);font-family:"Noto Serif KR",serif;font-weight:900;font-size:22px;box-shadow:0 0 0 3px var(--paper),0 0 0 4px var(--ink)}
+.cnhead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.cnhead b{font-family:var(--f-display);font-weight:400;font-size:19px}
+.cnhead small{color:var(--ink-soft);font-size:11.5px}
+.cnsitu{margin-left:auto;font-size:11px;font-weight:700;color:var(--up);border:1px solid currentColor;padding:0 7px;border-radius:999px}
+.cn blockquote{margin:6px 0 4px;font-family:var(--f-brush);font-size:22px;line-height:1.25;color:var(--ink)}
+.cnstory{margin:0 0 6px;font-size:12px;color:var(--ink-soft)}
+.cndec,.cnact{margin:2px 0;font-size:13px}
+.cndec span,.cnact span{display:inline-block;font-size:11px;font-weight:700;color:var(--paper);background:var(--up);padding:0 6px;margin-right:6px}
+.cnact span{background:var(--down)}
 .viewtog{background:transparent;border:1px solid var(--ink);padding:4px 10px;font-size:12px;font-weight:700;color:var(--ink)}
 .r3d.has-sel .hud-hint{display:none}
 
@@ -512,6 +525,10 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
       </section>
     </div>
     <div class="col">
+      <section class="panel" aria-label="군사 회의">
+        <div class="panel-h"><h2>군사 회의</h2><span class="mapbar"><label class="sr" for="cnSel">회의할 전장</label><select id="cnSel" class="cnsel"></select></span></div>
+        <div class="panel-b"><div class="council" id="cnBody"></div><p class="note" style="margin:10px 0 0">삼국지 인물의 일화를 빗댄 게임 속 조언입니다. 대사는 일화를 바탕으로 새로 쓴 것이며, 실제 투자 판단과 주문은 본인 책임입니다.</p></div>
+      </section>
       <section class="panel" aria-label="참모 보고">
         <div class="panel-h"><h2>책사 보고</h2><span class="tag" id="rAlertTag"></span></div>
         <div class="panel-b"><ul class="alerts" id="rAlerts"></ul></div>
@@ -1673,7 +1690,7 @@ gl_FragColor=vec4(c/max(a,.001),a);}`}));
   const esc3=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const UN={inf:'창병대',arm:'기병대',art:'궁병대',abn:'기습대'};
   const OT={win:'대승',adv:'우세',even:'대치',dis:'열세',lose:'위급'};
-  function cmdText(Ln){const t=Ln.bt.t,d=Ln.dep||{};
+  function cmdText(Ln){if(Ln.counsel)return Ln.counsel;const t=Ln.bt.t,d=Ln.dep||{};
     if(t==='손절선 돌파')return '손절선이 뚫렸습니다. 퇴각(매도) 여부를 결정하세요.';
     if(t==='궤멸 위기')return '아군 진지 함락 직전입니다. 투자 근거를 재점검하고 손절선을 정하세요.';
     if(t==='목표 고지 점령')return '목표 고지 점령. 일부 철수(차익 실현)를 검토하세요.';
@@ -1691,7 +1708,7 @@ gl_FragColor=vec4(c/max(a,.001),a);}`}));
       selPanel.innerHTML=`${natoSvg(Ln.unit)}<b>${Ln.name}</b><button type="button" class="x" aria-label="선택 해제">×</button>
         <div class="row">${Ln.general?`<span>장수 <em>${esc3(Ln.general)}</em></span>`:''}<span>${UN[Ln.unit]||UN.arm}</span><span>병력 <em>${Ln.valueTxt}</em></span><span>비중 <em>${Ln.w.toFixed(1)}%</em></span></div>
         <div class="row"><span>전과 <em class="${up?'kup':'kdown'}">${(up?'▲':'▼')+Math.abs(Ln.ret*100).toFixed(2)}%</em></span><span>장악률 <em>${Math.round(Ln.target*100)}%</em></span><span>전세 <em class="o-${o}">${Ln.bt.t}</em></span></div>
-        <div class="cmd">책사 건의 · ${cmdText(Ln)}</div><div class="fly3"><button type="button" data-fly="front">전선으로 이동</button>${Ln.general?`<button type="button" data-fly="hero">${esc3(Ln.general)} 클로즈업</button>`:''}<button type="button" data-fly="home">전체 보기</button></div>`}
+        <div class="cmd">군사 회의 · ${cmdText(Ln)}</div><div class="fly3"><button type="button" data-fly="front">전선으로 이동</button>${Ln.general?`<button type="button" data-fly="hero">${esc3(Ln.general)} 클로즈업</button>`:''}<button type="button" data-fly="home">전체 보기</button></div>`}
   }
   function buildLabels(){
     lblEl.innerHTML='';
@@ -1884,7 +1901,7 @@ try{flatView=localStorage.getItem('wr-view')==='flat'}catch(e){}
 function render3D(c){
   const b=$('r3d'); $('rMap').setAttribute('hidden',''); $('rInk').hidden=true; b.hidden=false;
   if(!r3dInit){window.WR3D.init(b,{onSelect:k=>{selId=selId===k?null:k;render(false);const tr=document.querySelector(`tr[data-row="${selId}"]`);if(tr)tr.scrollIntoView({block:'nearest',behavior:'smooth'})}});r3dInit=true}
-  let lanes=c.hs.filter(h=>h.value>0).sort((a,b)=>b.value-a.value).map(h=>({key:h.id,name:h.name,ret:h.ret,w:h.w,unit:h.unit,bt:battle(h),dep:deployJ(h,c.total),valueTxt:fmtW(h.value),flag:h.flag,general:h.general}));
+  let lanes=c.hs.filter(h=>h.value>0).sort((a,b)=>b.value-a.value).map(h=>({key:h.id,name:h.name,ret:h.ret,w:h.w,unit:h.unit,bt:battle(h),dep:deployJ(h,c.total),valueTxt:fmtW(h.value),flag:h.flag,general:h.general,counsel:topCounsel(h,c)}));
   if(lanes.length>24){const rest=lanes.splice(23),v=rest.reduce((t,l)=>t+c.hs.find(h=>h.id===l.key).value,0),co=rest.reduce((t,l)=>t+c.hs.find(h=>h.id===l.key).cost,0),r=co?v/co-1:0;
     lanes.push({key:'__rest',name:`기타 ${rest.length}개 전선`,ret:r,w:rest.reduce((t,l)=>t+l.w,0),unit:'inf',bt:{t:r>=.2?'압승':r>=.05?'우세':r>-.05?'교착':r>-.15?'열세':'궤멸 위기'},dep:{},valueTxt:fmtW(v),flag:'衆'})}
   window.WR3D.update({lanes,cash:{txt:fmtW(R.cash),w:c.cashW},sel:selId,hud:{total:fmtW(c.total),verdict:verdict(c).t,ret:c.ret,sovTier:SOV.indexOf(sovOf(c.ret))}});
@@ -2038,7 +2055,7 @@ function renderChart(c){
 function render(full){
   const c=calc();
   if(full) renderTable();
-  renderStats(c); renderMap(c); updateComputed(c); renderAlerts(c); renderChart(c); renderJournal(); renderGens(c); renderRebal(c); renderDuel(c); renderGuide();
+  renderStats(c); renderMap(c); updateComputed(c); renderAlerts(c); renderChart(c); renderJournal(); renderGens(c); renderRebal(c); renderDuel(c); renderGuide(); renderCouncil(c);
 }
 const JK={'압승':'win','목표 고지 점령':'win','궤멸 위기':'lose','손절선 돌파':'lose'};
 const JN={'압승':'대승','우세':'우세','교착':'대치','열세':'열세','궤멸 위기':'성 위급','손절선 돌파':'퇴각 권고','목표 고지 점령':'목표 점령'};
@@ -2132,6 +2149,48 @@ function renderGuide(){
   const done={paste:!R.example&&R.holdings.length>0,assign:R.holdings.length>0&&!R.example&&R.holdings.every(h=>h.general),map:!!renderGuide.mapSeen};
   g.querySelectorAll('[data-go]').forEach(b=>{if(done[b.dataset.go])b.classList.add('done');else b.classList.remove('done')});
   if(done.paste&&done.assign&&done.map){guideSeen=true;try{localStorage.setItem('wr-guide','done')}catch(e){}g.hidden=true;celebrate('출정 준비 완료!',true)}
+}
+/* ---- 군사 회의: 삼국지 인물이라면 어떤 결단을 내렸을까 (게임 속 조언) ---- */
+const SAGES={zhuge:['제갈량','亮','촉한 승상'],caocao:['조조','操','위왕'],simayi:['사마의','懿','위 태부'],liubei:['유비','備','촉한 황제'],guanyu:['관우','羽','형주 도독'],
+  zhouyu:['주유','瑜','오 대도독'],sunquan:['손권','權','오왕'],jiaxu:['가후','詡','위 태위'],xunyu:['순욱','彧','위 상서령'],luxun:['육손','遜','오 대도독'],zhaoyun:['조운','雲','촉 진군장군']};
+function councilFor(h,c){
+  const b=battle(h).t,d=deployJ(h,c.total),r=h.ret,q=h.qty,out=[],add=(k,sev,situ,quote,story,decision,action)=>out.push({k,sev,situ,quote,story,decision,action});
+  const P=v=>won(Math.round(v/10)*10);
+  if(b==='손절선 돌파')add('zhuge',5,'손절선 돌파','군율을 세운 자가 먼저 군율을 어기면, 다음 싸움에서는 아무도 그 군율을 따르지 않소.','아끼던 마속이 가정에서 명을 어기고 패하자, 눈물을 흘리며 군율대로 처벌했다(읍참마속).','정한 손절선을 지킨다 — 퇴각',`손절가 ${won(h.stop)} 아래로 내려가 지금 ${won(h.price)}입니다. 정한 원칙대로 ${fmtN(q)}주 정리를 검토하세요. 다시 들어갈 근거가 있다면 새 손절선부터 정하세요.`);
+  else if(r<=-.15)add('jiaxu',4,'아군 성 위급','성과 함께 무너지는 것보다, 물러나 군을 보존해야 다음 싸움이 있소.','장수(張繡)에게 물러나는 조조를 쫓지 말라 했고, 쫓다가 패하자 이번에는 곧바로 다시 쫓으라 해서 이기게 했다. 물러설 때와 칠 때를 가렸다.','병력을 보존하고 다시 도모한다',`손실 ${fmtW(-h.pl)}. 처음 산 이유가 아직 유효한지 적어 보세요. 아니라면 일부(예: ${fmtN(Math.ceil(q/2))}주)를 줄여 병력을 보존하고, 유효하다면 손절가를 ${P(h.price*.9)} 근처로 정하세요.`);
+  else if(r<=-.05)add('simayi',3,'열세','싸움을 거는 쪽이 급한 법이오. 성문을 닫고 기다리면 급한 쪽이 먼저 지치오.','오장원에서 제갈량이 여인의 옷까지 보내며 도발해도 진영을 나서지 않았고, 제갈량이 진중에서 세상을 떠나자 촉군이 물러났다.','서두르지 않는다 — 지구전',`추가 매수(물타기)는 근거를 다시 확인한 뒤에 하세요. ${h.stop==null?`먼저 손절가를 정해 두세요(예: ${P(h.price*.9)}).`:`손절선 ${won(h.stop)}까지 ${pct(h.stop/h.price-1)} 남았습니다.`}`);
+  else if(r<.05)add('liubei',1,'대치','큰 일은 서두른다고 이뤄지지 않소. 세 번 찾아가서야 와룡을 얻었소.','제갈량을 얻으려 초가집을 세 번 찾아갔다(삼고초려).','결판이 날 때까지 기다린다',`${pct(r)}로 대치 중입니다. ${h.goal==null?`목표가를 정해 두면 점령했을 때 알려드립니다(예: ${P(h.avg*1.2)}).`:`목표가 ${won(h.goal)}까지 ${pct(h.goal/h.price-1)} 남았습니다.`}`);
+  else if(b==='목표 고지 점령')add('zhouyu',4,'목표 점령','불은 바람이 바뀌기 전에 질러야 하오. 목표에 닿았다면 계획대로 거두시오.','적벽에서 동남풍이 부는 그때를 놓치지 않고 화공을 펼쳤다.','계획대로 거둔다',`목표가 ${won(h.goal)}에 닿았습니다(지금 ${won(h.price)}). 계획했던 만큼 차익을 실현하세요. 더 끌고 갈 거라면 새 목표가와 손절가를 정하세요.`);
+  else if(r>=.2)add('guanyu',4,'대승','칠군을 물에 잠기게 한 그날이 가장 위험한 날이었소.','번성에서 우금의 칠군을 수몰시켜 천하를 떨게 했지만, 그 사이 비워 둔 형주를 여몽에게 빼앗겼다.','이겼을 때 방심을 경계 — 일부 거둔다',`수익 ${fmtW(h.pl)}. 일부(예: ${fmtN(Math.max(1,Math.floor(q/3)))}주, 약 ${fmtW(Math.floor(q/3)*h.price)})를 거둬 군량(예수금)으로 돌리는 것을 검토하세요.`);
+  else add('caocao',2,'우세','적이 흔들릴 때 몰아치되, 돌아갈 길은 늘 남겨 두시오.','관도에서 원소의 군량고 오소를 직접 기습해 판을 뒤집었다. 결단은 빨랐고 본진 수비도 남겨 두었다.','기세를 타되 퇴로를 확보한다',`${h.goal==null?`목표가(예: ${P(h.avg*1.25)})를 정하고, `:''}손절가를 평단 ${won(h.avg)} 근처로 올려 번 것을 지키는 방법도 있습니다.`);
+  if(d.t==='과잉 배치'||d.t==='집중 경보')add('xunyu',3,d.t,'근본을 굳게 지켜야 천하를 다툴 수 있소. 한 곳에 모든 것을 걸지 마시오.','조조가 다시 서주를 치려 하자, 고조의 관중·광무제의 하내처럼 근본인 연주부터 굳히라고 진언했다.','한 곳에 몰린 병력을 나눈다',d.amt!=null?`${d.d}. 목표 비중 ${h.target}%에 맞추는 양입니다.`:`이 전선에 전체의 ${h.w.toFixed(1)}%가 몰려 있습니다. 목표 비중을 정해 두면 줄일 양을 계산해 드립니다.`);
+  if(d.t==='병력 부족')add('sunquan',2,'병력 부족','망설이는 자들의 말을 듣지 않겠소. 정한 계획이 있으면 결단하시오.','적벽 앞에서 항복하자는 신하들 앞에서 탁자 모서리를 베며 결전을 정했다.','계획한 만큼 증원한다',`${d.d}. 투자 근거를 다시 확인한 뒤 실행하세요.`);
+  return out.sort((a,b)=>b.sev-a.sev).slice(0,3);
+}
+function councilAll(c){
+  const out=[],add=(k,sev,situ,quote,story,decision,action)=>out.push({k,sev,situ,quote,story,decision,action});
+  const maxW=c.hs.reduce((m,h)=>Math.max(m,h.w),0),noStop=c.hs.filter(h=>h.stop==null).length;
+  if(c.ret<=-.1)add('luxun',4,'전면 열세','적이 지쳐 늘어질 때까지 기다렸다가 칠 것이오. 지금은 버틸 때요.','이릉에서 유비의 대군이 수백 리로 늘어져 지칠 때까지 맞서지 않다가, 한 번의 화공으로 무너뜨렸다.','버티며 기회를 기다린다','급하게 모든 전선을 바꾸지 마세요. 손실이 가장 큰 전선부터 투자 근거를 하나씩 점검하세요.');
+  if(maxW>30||c.hs.length<3)add('zhuge',3,'형세 집중','천하를 셋으로 나눠 형세를 세웠듯, 한 바구니에 모든 것을 담지 마시오.','초가집에서 유비에게 형주와 익주를 얻어 천하를 셋으로 나누자는 큰 그림을 그렸다(융중대).','전선을 나눠 형세를 세운다',`가장 큰 전선이 전체의 ${maxW.toFixed(1)}%입니다. 「군 재편성」에서 목표 비중을 정해 보세요.`);
+  if(c.cashW>40)add('caocao',2,'군량 과다','둔전으로 군량을 쌓은 것은 결국 쓰기 위함이었소.','둔전제로 군량을 비축해 천하를 다툴 힘을 길렀다.','쌓아 둔 군량에 쓰임을 정한다',`예수금이 전체의 ${c.cashW.toFixed(0)}%입니다. 의도한 대기 자금이 아니라면 투입 계획(나눠 사기 등)을 세우세요.`);
+  if(c.hs.length&&c.cashW<3)add('zhuge',3,'군량 고갈','북벌은 적이 아니라 군량 때문에 멈췄소.','다섯 번의 북벌 가운데 여러 번이 군량 보급이 끊겨 물러나야 했다.','군량부터 확보한다',`예수금이 ${c.cashW.toFixed(1)}%뿐입니다. 급락 때 대응할 여유 자금을 일부 남겨 두세요.`);
+  if(c.ret>=.15)add('simayi',3,'전면 우세','이긴 판을 지키는 것도 실력이오. 끝까지 기다린 자가 천하를 가졌소.','오래 참고 기다린 끝에 고평릉의 변으로 위의 실권을 잡았다.','이긴 판을 지킨다','크게 오른 전선의 비중이 목표보다 커졌는지 「군 재편성」에서 확인하세요.');
+  if(noStop&&!out.length)add('zhaoyun',1,'원칙 점검','난전 속에서도 무엇을 지켜야 하는지 알면 흔들리지 않소.','장판파 난전 속에서도 아두를 품에 안고 빠져나왔다.','지킬 원칙을 정한다',`손절가가 없는 전선이 ${noStop}곳 있습니다. 판정표에서 손절가를 정해 두면 돌파 시 알려드립니다.`);
+  if(!out.length)add('liubei',1,'태평','형세가 안정되었을 때 사람과 원칙을 다지시오.','촉을 얻은 뒤 인재를 고루 쓰며 기반을 다졌다.','원칙을 다진다','모든 전선이 안정적입니다. 목표가·손절가를 점검해 두세요.');
+  return out.sort((a,b)=>b.sev-a.sev).slice(0,3);
+}
+function topCounsel(h,c){const x=councilFor(h,c)[0];return x?`${SAGES[x.k][0]} — ${x.decision}. ${x.action}`:''}
+let cnUser=null;
+function renderCouncil(c){
+  const sel=$('cnSel'),body=$('cnBody');if(!sel)return;
+  if(!c.hs.length){sel.innerHTML='';body.innerHTML='<p class="empty">전선이 생기면 군사 회의가 열립니다.</p>';return}
+  const want=selId&&c.hs.some(h=>h.id===selId)?selId:(cnUser&&(cnUser==='all'||c.hs.some(h=>h.id===cnUser))?cnUser:'all');
+  sel.innerHTML='<option value="all">천하 전체</option>'+c.hs.slice().sort((a,b)=>a.ret-b.ret).map(h=>`<option value="${h.id}">${esc(h.name)} (${pct(h.ret)} · ${({'압승':'대승','교착':'대치','궤멸 위기':'위급','손절선 돌파':'퇴각 권고','목표 고지 점령':'목표 점령'})[battle(h).t]||battle(h).t})</option>`).join('');sel.value=want;
+  const h=c.hs.find(x=>x.id===want),list=h?councilFor(h,c):councilAll(c);
+  body.innerHTML=list.map(x=>{const[n,hz,tt]=SAGES[x.k];return `<article class="cn"><div class="cnseal" aria-hidden="true">${hz}</div><div class="cnmain">
+    <div class="cnhead"><b>${n}</b><small>${tt}</small><span class="cnsitu">${esc(x.situ)}</span></div>
+    <blockquote>“${esc(x.quote)}”</blockquote><p class="cnstory">${esc(x.story)}</p>
+    <p class="cndec"><span>결단</span>${esc(x.decision)}</p><p class="cnact"><span>실행</span>${esc(x.action)}</p></div></article>`}).join('');
 }
 function renderGens(c){
   renderHonor(c);
@@ -2374,6 +2433,7 @@ function bind(){
       const B=$('bkMsg');if(!B.dataset.armed||B.dataset.armed!==f.name){B.dataset.armed=f.name;B.textContent=`「${f.name}」의 ${d.holdings.length}개 종목·일지 ${(d.journal||[]).length}건으로 지금 기록을 바꿉니다. 같은 파일을 한 번 더 고르면 적용합니다.`;return}
       delete B.dataset.armed;R={cash:+d.cash||0,holdings:d.holdings.map(h=>({...h,id:h.id||uid_()})),history:d.history||[],journal:d.journal||[],lastStates:d.lastStates||{},lastSov:d.lastSov||null,example:false};
       selId=null;persist();render(true);B.textContent='출정 기록을 불러왔습니다'}catch(err){$('bkMsg').textContent='불러오지 못했습니다. 이 앱에서 내보낸 JSON 파일인지 확인하세요.'}});
+  $('cnSel').addEventListener('change',e=>{cnUser=e.target.value;if(selId&&cnUser!==selId){selId=null;render(false)}else renderCouncil(calc())});
   $('rReport').onclick=async()=>{if(!dlNS)return;try{const b=await reportImage();await dlNS.save({filename:`전황보고_${today()}.png`,data:b});toast('전황 보고서를 저장했습니다')}catch(err){toast(err&&err.code==='declined'?'저장을 취소했습니다':'이 화면에서는 저장할 수 없습니다')}};
   $('rRecord').onclick=()=>{if(R.example){toast('예시 데이터는 기록되지 않습니다');return}persist();render(false);toast(`${today()} 전황 기록 완료`)};
   let rt; addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(!$('view-real').hidden)render(false)},120)});
