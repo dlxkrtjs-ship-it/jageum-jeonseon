@@ -570,9 +570,11 @@ def _https_ok():
     if os.environ.get("JJ_SELFTEST_OFFLINE") == "1":
         return True
     try:
-        req = urllib.request.Request("https://api.github.com/", headers={"User-Agent": "jageum-jeonseon"})
+        req = urllib.request.Request("https://github.com/", method="HEAD", headers={"User-Agent": "jageum-jeonseon"})
         with urllib.request.urlopen(req, timeout=15, context=SSL_CTX) as r:
-            return r.status == 200
+            return True
+    except urllib.error.HTTPError:
+        return True  # HTTP 응답(403·429 등)을 받았다면 TLS 인증서 확인은 통과한 것
     except Exception as e:
         print("     HTTPS 실패:", e, flush=True)
         return False
