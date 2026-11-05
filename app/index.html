@@ -370,6 +370,14 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
 @media (max-width:480px){.lkg{grid-template-columns:1fr}}
 .bk{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .bkin{cursor:pointer;display:inline-block}
+.get{display:grid;gap:10px}
+.getbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.getbtn{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none}
+.getbtn b{font-family:var(--f-display);font-weight:400;font-size:16px}
+.getbtn small{font-size:11px;color:var(--ink-soft)}
+.getbtn.main{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.getbtn.main small{color:var(--paper);opacity:.75}
+.getbtn:hover{border-color:var(--ink)}
 .viewtog{background:transparent;border:1px solid var(--ink);padding:4px 10px;font-size:12px;font-weight:700;color:var(--ink)}
 .r3d.has-sel .hud-hint{display:none}
 
@@ -442,6 +450,14 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
       </section>
     </div>
     <div class="col">
+      <section class="panel" aria-label="내 계좌 연결하기" id="rGet" hidden>
+        <div class="panel-h"><h2>내 계좌 연결하기</h2><span class="tag">PC용 실행 파일 필요</span></div>
+        <div class="panel-b get">
+          <p class="note" style="margin:0">지금 화면은 체험판입니다. 내 증권 계좌(키움·토스·한국투자) 잔고로 전장을 펼치려면 PC에 실행 파일을 받아 켜세요. API 키는 내 PC에만 저장됩니다.</p>
+          <div class="getbtns" id="getBtns"></div>
+          <p class="note" id="getHint" style="margin:0"></p>
+        </div>
+      </section>
       <section class="panel" aria-label="계좌 연결" id="rLink" hidden>
         <div class="panel-h"><h2>계좌 연결</h2><span class="tag" id="lkState">연결 안 됨</span></div>
         <div class="panel-b lk">
@@ -2368,11 +2384,21 @@ async function lkSync(quiet){
 }
 function marketOpen(){const k=new Date(Date.now()+9*3600e3),d=k.getUTCDay(),m=k.getUTCHours()*60+k.getUTCMinutes();return d>0&&d<6&&m>=480&&m<1200}
 function lkAuto(){clearInterval(LK.timer);const s=+$('lkAuto').value;try{localStorage.setItem('wr-auto',String(s));localStorage.setItem('wr-mkt',$('lkMkt').checked?'1':'0')}catch(e){}if(s>0)LK.timer=setInterval(()=>{if($('lkMkt').checked&&!marketOpen())return;lkSync(true)},s*1000)}
+const DLBASE='https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/';
+function showGet(){
+  const ua=navigator.userAgent||'',pf=((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'').toLowerCase();
+  const os=/win/.test(pf)||/Windows/.test(ua)?'win':/mac/.test(pf)||/Mac OS X/.test(ua)?(/iPhone|iPad/.test(ua)?'mobile':'mac'):/Android|iPhone|iPad/.test(ua)?'mobile':/linux/.test(pf)?'linux':'other';
+  const B=[['win','Windows용 받기','JageumJeonseon-Windows.exe','더블클릭 → 경고창이 뜨면 「추가 정보」 → 「실행」'],['mac','Mac (M1~M4 칩)용 받기','JageumJeonseon-Mac-AppleSilicon.zip','압축 풀고 「실행하기」 더블클릭'],['mac2','Mac (인텔 칩)용 받기','JageumJeonseon-Mac-Intel.zip','압축 풀고 「실행하기」 더블클릭'],['linux','Linux용 받기','JageumJeonseon-Linux','chmod +x 후 실행']];
+  const first=os==='mac'?['mac','mac2']:[os];B.sort((a,b)=>(first.includes(b[0])?1:0)-(first.includes(a[0])?1:0));
+  $('getBtns').innerHTML=B.map(([k,label,file,how])=>`<a class="getbtn${first.includes(k)?' main':''}" href="${DLBASE}${file}" rel="noopener" target="_blank"><b>${label}</b><small>${how}</small></a>`).join('');
+  $('getHint').innerHTML=os==='mobile'?'휴대폰에서는 실행 파일을 쓸 수 없습니다. PC에서 이 페이지를 열어 받으세요.':os==='mac'?'Mac 칩 확인: 사과 메뉴 → 「이 Mac에 관하여」 → "Apple M…"이면 M 칩, "Intel"이면 인텔.':os==='win'?'이 PC는 Windows로 보여 Windows용을 맨 앞에 두었습니다.':'';
+  $('rGet').hidden=false;
+}
 async function initLink(){
-  if(location.protocol==='file:')return;
+  if(location.protocol==='file:'){showGet();return}
   const q=new URLSearchParams(location.search);let t=q.get('t');
   if(t){try{sessionStorage.setItem('wr-t',t)}catch(e){}history.replaceState(null,'',location.pathname+location.hash)}else{try{t=sessionStorage.getItem('wr-t')}catch(e){}}
-  if(!t)return;LK.token=t;let st;try{st=await lkApi('/api/status')}catch(e){return}
+  if(!t){showGet();return}LK.token=t;let st;try{st=await lkApi('/api/status')}catch(e){showGet();return}
   $('rLink').hidden=false;lkFill(st.config);$('lkState').textContent=`실행기 v${st.version} · 동기화 전`;
   try{const sv=(await lkApi('/api/state')).state;if(sv&&Array.isArray(sv.holdings)){R={cash:sv.cash||0,holdings:sv.holdings,history:sv.history||[],journal:sv.journal||[],lastStates:sv.lastStates||{},lastSov:sv.lastSov||null,example:false};selId=null;render(true)}}catch(e){}
   $('rStoreNote').innerHTML='출정 기록은 <b>이 PC의 실행기 폴더(홈 폴더의 .jageum-jeonseon)</b>에 저장됩니다. 증권사 비밀번호는 이 앱에 넣지 마세요.';

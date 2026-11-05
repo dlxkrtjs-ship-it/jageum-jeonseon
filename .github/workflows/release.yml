@@ -38,16 +38,16 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            name: jageum-jeonseon-windows.exe
+            name: JageumJeonseon-Windows.exe
             sep: ";"
           - os: macos-latest
-            name: jageum-jeonseon-macos-apple-silicon
+            name: JageumJeonseon-Mac-AppleSilicon.zip
             sep: ":"
           - os: macos-15-intel
-            name: jageum-jeonseon-macos-intel
+            name: JageumJeonseon-Mac-Intel.zip
             sep: ":"
           - os: ubuntu-latest
-            name: jageum-jeonseon-linux
+            name: JageumJeonseon-Linux
             sep: ":"
     runs-on: ${{ matrix.os }}
     steps:
@@ -62,11 +62,18 @@ jobs:
         run: |
           bin=dist/jageum-jeonseon; [ -f dist/jageum-jeonseon.exe ] && bin=dist/jageum-jeonseon.exe
           "$bin" --self-test
-      - name: 이름 정리
+      - name: 이름 정리 (Mac은 「실행하기」와 함께 zip으로)
         shell: bash
         run: |
-          src=dist/jageum-jeonseon; [ -f dist/jageum-jeonseon.exe ] && src=dist/jageum-jeonseon.exe
-          mv "$src" "dist/${{ matrix.name }}"
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            d="pkg/자금전선 작전상황실"; mkdir -p "$d"
+            cp dist/jageum-jeonseon "$d/"; cp packaging/mac/실행하기.command packaging/mac/읽어보기.txt "$d/"
+            chmod +x "$d/jageum-jeonseon" "$d/실행하기.command"
+            ditto -c -k --sequesterRsrc --keepParent "$d" "dist/${{ matrix.name }}"
+          else
+            src=dist/jageum-jeonseon; [ -f dist/jageum-jeonseon.exe ] && src=dist/jageum-jeonseon.exe
+            mv "$src" "dist/${{ matrix.name }}"
+          fi
       - uses: actions/upload-artifact@v4
         with: { name: "${{ matrix.name }}", path: "dist/${{ matrix.name }}" }
 
@@ -80,11 +87,16 @@ jobs:
         run: echo "tag=v$(python3 -c "import re;print(re.search(r'VERSION = \"([^\"]+)\"',open('server/warroom.py',encoding='utf-8').read()).group(1))")" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with: { path: out, merge-multiple: true }
+      - name: 릴리스 안내문 만들기 (어떤 파일을 받는지)
+        run: |
+          tag="${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.v.outputs.tag }}"
+          sed "s/__VER__/$tag/g" docs/RELEASE_TEMPLATE.md > body.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.v.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: 자금전선 작전상황실 ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.v.outputs.tag }}
           files: out/*
+          body_path: body.md
           generate_release_notes: true
           make_latest: true

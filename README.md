@@ -2,6 +2,17 @@
 
 내 주식 계좌를 삼국지풍 전장으로 보여주는 앱입니다. 종목 하나가 전장 하나이고, 수익이 나면 적성으로 진격하고 손실이 나면 아군 성이 위급해집니다.
 
+## ⬇️ 내려받기
+
+| 내 컴퓨터 | 내려받기 | 실행 |
+|---|---|---|
+| 🪟 **Windows** | [**Windows용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Windows.exe) | 더블클릭 → 파란 경고창이 뜨면 「추가 정보」 → 「실행」 |
+| 🍎 **Mac (M1·M2·M3·M4)** | [**Mac(M 칩)용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Mac-AppleSilicon.zip) | 압축 풀기 → 「실행하기」 더블클릭 |
+| 🍎 **Mac (인텔)** | [**Mac(인텔)용 받기**](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Mac-Intel.zip) | 압축 풀기 → 「실행하기」 더블클릭 |
+| 🐧 Linux | [Linux용 받기](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/JageumJeonseon-Linux) | `chmod +x` 후 실행 |
+
+Mac 칩 확인: 사과(🍎) 메뉴 → 「이 Mac에 관하여」 → "Apple M…"이면 M 칩, "Intel"이면 인텔. 전체 버전 목록은 [Releases](https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases)에 있습니다.
+
 ![입체 전장](docs/battlefield-3d.png)
 
 | 수묵 전장도 | 장수 열전 |
@@ -72,17 +83,13 @@
 ## 설치와 실행
 
 ### 실행 파일 (권장)
-1. 이 저장소의 **Releases**에서 내 운영체제용 파일을 받습니다.
-   - Windows: `jageum-jeonseon-windows.exe`
-   - macOS (M1·M2 등 애플 실리콘): `jageum-jeonseon-macos-apple-silicon`
-   - macOS (인텔): `jageum-jeonseon-macos-intel`
-   - Linux: `jageum-jeonseon-linux`
-2. 실행하면 브라우저가 열립니다. 오른쪽 「계좌 연결」 패널에서 증권사와 키를 넣고 **저장하고 연결 시험** → **지금 동기화**.
-3. 「자동」에서 1·5·15분마다 자동 동기화를 켤 수 있습니다.
+1. 맨 위 **⬇️ 내려받기** 표에서 내 컴퓨터용 파일을 받습니다.
+2. **Windows:** 받은 `.exe`를 더블클릭합니다. "Windows의 PC 보호" 경고가 뜨면 「추가 정보」 → 「실행」.
+   **Mac:** 받은 zip을 더블클릭해 풀고, 폴더 안의 **「실행하기」**를 더블클릭합니다. "확인되지 않은 개발자" 경고가 뜨면 「실행하기」를 오른쪽 클릭 → 「열기」. 그래도 막히면 시스템 설정 → 개인정보 보호 및 보안 → 「그래도 열기」.
+3. 검은 창(터미널)이 뜨고 브라우저가 자동으로 열립니다. **쓰는 동안 이 창은 닫지 마세요.** 브라우저가 안 열리면 창에 찍힌 `http://127.0.0.1:8787/?t=…` 주소를 붙여넣으세요.
+4. 오른쪽 「계좌 연결」 패널에서 증권사와 키를 넣고 **저장하고 연결 시험** → **지금 동기화**. 「자동」에서 1·5·15분마다 자동 동기화를 켤 수 있습니다.
 
-처음 실행할 때 경고가 나올 수 있습니다. 코드 서명이 없는 실행 파일이라서 그렇습니다.
-- **Windows:** "Windows의 PC 보호" → 추가 정보 → 실행
-- **macOS:** 파일 우클릭 → 열기, 또는 터미널에서 `chmod +x 받은파일 && xattr -d com.apple.quarantine 받은파일`
+경고가 뜨는 이유: 코드 서명(유료 인증서)이 없는 실행 파일이기 때문입니다. 소스 코드는 이 저장소에 모두 공개되어 있고, 실행 파일은 GitHub Actions가 이 소스로 직접 빌드합니다.
 
 ### 파이썬으로 직접 실행
 파이썬 3.9 이상이면 추가 설치 없이 됩니다.
