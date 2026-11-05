@@ -9,11 +9,11 @@
 
 지원: 키움증권(REST API), 토스증권(Open API), 한국투자증권(KIS Open API), 데모(키 없이 체험)
 """
-import argparse, json, os, random, re, secrets, socket, sys, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
+import argparse, json, os, random, re, secrets, socket, ssl, sys, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.5.2"
+VERSION = "0.5.3"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -22,6 +22,20 @@ TOKEN_FILE = os.path.join(CONFIG_DIR, "tokens.json")
 STATE_FILE = os.path.join(CONFIG_DIR, "state.json")
 SESSION_FILE = os.path.join(CONFIG_DIR, "session.json")
 LOCK = threading.Lock()
+
+
+def _ssl_context():
+    """HTTPS 인증서 확인용. 실행 파일(특히 Mac)에는 OS 인증서 저장소가 연결되지 않을 수 있어 certifi 묶음을 우선 쓴다."""
+    ctx = ssl.create_default_context()  # OS·환경변수(SSL_CERT_FILE)의 인증서 — 회사망 프록시 인증서 포함
+    try:
+        import certifi
+        ctx.load_verify_locations(cafile=certifi.where())  # 실행 파일에 묶인 공용 인증서 추가
+    except Exception:
+        pass
+    return ctx
+
+
+SSL_CTX = _ssl_context()
 
 
 def app_dir():
@@ -104,7 +118,7 @@ def http_json(method, url, headers=None, body=None, form=False, want_headers=Fal
             h.setdefault("Content-Type", "application/json;charset=UTF-8")
     req = urllib.request.Request(url, data=data, method=method, headers=h)
     try:
-        with urllib.request.urlopen(req, timeout=20) as r:
+        with urllib.request.urlopen(req, timeout=20, context=SSL_CTX) as r:
             payload = json.loads(r.read().decode("utf-8") or "{}")
             return (payload, {k.lower(): v for k, v in r.headers.items()}) if want_headers else payload
     except urllib.error.HTTPError as e:
@@ -129,7 +143,10 @@ def http_json(method, url, headers=None, body=None, form=False, want_headers=Fal
             msg = "증권사 호출 한도를 넘었습니다. 자동 동기화 간격을 늘려 주세요."
         raise BrokerError(msg, e.code)
     except urllib.error.URLError as e:
-        raise BrokerError(f"증권사 서버에 연결하지 못했습니다: {e.reason}")
+        r = e.reason
+        if isinstance(r, ssl.SSLError) or "CERTIFICATE" in str(r).upper():
+            raise BrokerError(f"보안 인증서 확인에 실패해 증권사 서버에 연결하지 못했습니다({r}). 최신 버전으로 다시 설치해 주세요.")
+        raise BrokerError(f"증권사 서버에 연결하지 못했습니다: {r}. 인터넷 연결을 확인하세요.")
 
 
 def num(v):
@@ -344,7 +361,7 @@ def fetch_all(cfg):
 
 def my_public_ip():
     req = urllib.request.Request("https://api.ipify.org?format=json", headers={"User-Agent": "jageum-jeonseon"})
-    with urllib.request.urlopen(req, timeout=6) as r:
+    with urllib.request.urlopen(req, timeout=6, context=SSL_CTX) as r:
         return json.loads(r.read().decode()).get("ip", "")
 
 
@@ -513,7 +530,7 @@ def check_update(enabled):
     if not _UPDATE:
         try:
             req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/releases/latest", headers={"Accept": "application/vnd.github+json", "User-Agent": "jageum-jeonseon"})
-            with urllib.request.urlopen(req, timeout=4) as r:
+            with urllib.request.urlopen(req, timeout=4, context=SSL_CTX) as r:
                 d = json.loads(r.read().decode("utf-8"))
             _UPDATE.update(latest=d.get("tag_name", ""), url=d.get("html_url", f"https://github.com/{REPO}/releases/latest"))
         except Exception:
@@ -549,6 +566,18 @@ def free_port(preferred):
     raise SystemExit("빈 포트를 찾지 못했습니다.")
 
 
+def _https_ok():
+    if os.environ.get("JJ_SELFTEST_OFFLINE") == "1":
+        return True
+    try:
+        req = urllib.request.Request("https://api.github.com/", headers={"User-Agent": "jageum-jeonseon"})
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CTX) as r:
+            return r.status == 200
+    except Exception as e:
+        print("     HTTPS 실패:", e, flush=True)
+        return False
+
+
 def self_test():
     """빌드된 실행 파일 점검: 화면·3D 엔진 파일이 들어 있고 서버·보안 검사가 동작하는지."""
     port = free_port(18765)
@@ -568,7 +597,8 @@ def self_test():
     checks = [("화면", get("/")[0] == 200 and b"<title>" in get("/")[1]),
               ("3D 엔진", get("/vendor/three.min.js")[0] == 200 and len(get("/vendor/three.min.js")[1]) > 500000),
               ("토큰 없는 API 거부", get("/api/status")[0] == 401),
-              ("데모 잔고", demo_balance({})["holdings"] != [])]
+              ("데모 잔고", demo_balance({})["holdings"] != []),
+              ("HTTPS 인증서 확인", _https_ok())]
     srv.shutdown()
     for name, ok in checks:
         print(("ok   " if ok else "FAIL ") + name, flush=True)
