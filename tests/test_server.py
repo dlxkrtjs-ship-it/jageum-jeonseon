@@ -47,5 +47,14 @@ code, body, _ = call("/api/balance")
 assert code == 200 and len(json.loads(body)["holdings"]) == 6, "데모 잔고"
 assert json.loads(call("/api/update")[1])["newer"] is False
 assert warroom._ver("v0.10.0") > warroom._ver("0.9.9")
+def boot(h):
+    req = urllib.request.Request(base + "/api/bootstrap", headers=h)
+    try:
+        with opener.open(req, timeout=5) as r: return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as e: return e.code, None
+c, b = boot({"Sec-Fetch-Site": "same-origin"})
+assert c == 200 and b["token"] == "TESTTOKEN", "같은 출처 화면은 토큰을 받음"
+assert boot({"Sec-Fetch-Site": "cross-site"})[0] == 403, "다른 사이트는 토큰을 못 받음"
+assert boot({"Host": f"evil.example:{port}"})[0] == 403, "다른 호스트는 토큰을 못 받음"
 print("ok: 서버 시험 통과")
 srv.shutdown()

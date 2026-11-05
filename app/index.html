@@ -380,6 +380,13 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
 .getbtn:hover{border-color:var(--ink)}
 .lkdown{margin:0;padding:10px 12px;border:1.5px solid var(--up);background:color-mix(in srgb,var(--up) 8%,var(--paper));font-size:13px}
 .getcmd{margin:6px 0;padding:8px 10px;background:var(--paper);border:1px solid var(--line);font-family:var(--f-mono);font-size:11.5px;white-space:pre-wrap;word-break:break-all;user-select:all}
+.hqlink{background:var(--up);color:#f6eedb;border:0;padding:9px 14px;font-weight:700;font-size:13.5px;align-self:center}
+.hqlink:hover{filter:brightness(1.1)}
+#rLink .lk{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px 20px;align-items:start}
+.lkcol{display:grid;gap:10px;min-width:0}
+@media (max-width:760px){#rLink .lk{grid-template-columns:minmax(0,1fr)}}
+#rLink.folded .panel-b{display:none}
+#rLink,#rGet{border:2px solid var(--up);outline-color:var(--up)}
 .viewtog{background:transparent;border:1px solid var(--ink);padding:4px 10px;font-size:12px;font-weight:700;color:var(--ink)}
 .r3d.has-sel .hud-hint{display:none}
 
@@ -392,6 +399,7 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
       <div class="eyebrow" id="eyebrow">실전 · 내 계좌 판정</div>
       <h1>자금전선 작전상황실</h1>
     </div>
+    <button type="button" class="hqlink" id="hqLink">🔑 계좌 연결</button>
     <nav class="tabs" aria-label="모드">
       <a href="#real" id="tab-real" aria-selected="true">출정 · 내 계좌</a>
       <a href="#training" id="tab-training" aria-selected="false">연병 · 모의전</a>
@@ -412,11 +420,63 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
   </div>
   <nav class="guide" id="rGuide" aria-label="처음 시작하기" hidden>
     <span class="gt">출정 준비</span>
-    <button type="button" data-go="paste"><i>一</i><span><b>잔고 넣기</b><small>계좌 잔고를 붙여넣거나 종목을 개설</small></span></button>
+    <button type="button" data-go="paste"><i>一</i><span><b>잔고 넣기</b><small>계좌 연결로 불러오거나 잔고를 붙여넣기</small></span></button>
     <button type="button" data-go="assign"><i>二</i><span><b>장수 배치</b><small>종목마다 장수를 붙여 깃발을 세움</small></span></button>
     <button type="button" data-go="map"><i>三</i><span><b>전장 보기</b><small>수익만큼 적성으로 진격하는 모습 확인</small></span></button>
     <button type="button" class="gx" data-go="close" aria-label="안내 닫기">×</button>
   </nav>
+  <section class="panel" aria-label="내 계좌 연결하기" id="rGet" hidden>
+        <div class="panel-h"><h2>🔑 내 계좌 연결하기</h2><span class="tag">PC용 실행 파일 필요</span></div>
+        <div class="panel-b get">
+          <p class="note" style="margin:0">지금 화면은 체험판입니다. 내 증권 계좌(키움·토스·한국투자) 잔고로 전장을 펼치려면 PC에 실행 파일을 받아 켜세요. API 키는 내 PC에만 저장됩니다.</p>
+          <div class="getbtns" id="getBtns"></div>
+          <p class="note" id="getHint" style="margin:0"></p>
+        </div>
+  </section>
+  <section class="panel" aria-label="계좌 연결" id="rLink" hidden>
+        <div class="panel-h"><h2>🔑 계좌 연결 · 증권사 API</h2><span class="mapbar"><span class="tag" id="lkState">연결 안 됨</span><button type="button" class="reset" id="lkFold" aria-expanded="true">접기</button></span></div>
+        <div class="panel-b lk">
+          <div class="lkcol">
+          <label class="lkf">증권사<select id="lkBroker"><option value="kiwoom">키움증권</option><option value="toss">토스증권</option><option value="kis">한국투자증권</option><option value="all">여러 증권사 합치기</option><option value="demo">데모 (가상 데이터)</option></select></label>
+          <div class="lkg" data-b="kiwoom">
+            <label class="lkf">App Key<input id="kw_appkey" autocomplete="off" spellcheck="false"></label>
+            <label class="lkf">Secret Key<input id="kw_secretkey" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
+            <label class="lkf">서버<select id="kw_env"><option value="real">실전투자</option><option value="mock">모의투자</option></select></label>
+            <p class="note">키움 REST API 포털(openapi.kiwoom.com)에서 API 사용 신청 후 발급받은 키입니다. 실전과 모의투자 키는 서로 다릅니다.</p>
+          </div>
+          <div class="lkg" data-b="toss">
+            <label class="lkf">Client ID<input id="ts_client_id" autocomplete="off" spellcheck="false"></label>
+            <label class="lkf">Client Secret<input id="ts_client_secret" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
+            <label class="lkf">계좌 번호표(accountSeq)<input id="ts_account_seq" inputmode="numeric" placeholder="비우면 첫 계좌"></label>
+            <p class="note">토스증권 PC 웹(WTS) 설정 → Open API에서 발급하고, 이 PC의 IP를 허용 IP로 등록해야 합니다. 미국 주식은 환율로 원화 환산합니다.</p>
+          </div>
+          <div class="lkg" data-b="kis">
+            <label class="lkf">App Key<input id="ks_app_key" autocomplete="off" spellcheck="false"></label>
+            <label class="lkf">App Secret<input id="ks_app_secret" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
+            <label class="lkf">계좌번호<input id="ks_account" placeholder="12345678-01" autocomplete="off"></label>
+            <label class="lkc"><input type="checkbox" id="ks_mock"> 모의투자 계좌</label>
+          </div>
+          <div class="lkg" data-b="all"><p class="note">키를 저장해 둔 증권사(키움·토스·한국투자)의 잔고를 모두 불러와 한 전장에 합칩니다. 같은 종목은 수량을 더하고 평균단가는 수량 가중 평균으로 계산합니다. 먼저 증권사를 하나씩 골라 키를 저장하세요.</p></div>
+          <div class="lkg" data-b="demo"><p class="note">키 없이 가상 잔고로 체험합니다. 동기화할 때마다 시세가 조금씩 움직입니다.</p></div>
+          </div>
+          <div class="lkcol"><div class="lkrow">
+            <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
+            <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
+            <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
+            <button type="button" class="btn2 ghost" id="lkQuit" title="실행기(로컬 서버)를 끕니다">실행기 끄기</button>
+            <button type="button" class="btn2 ghost" id="lkIp" title="토스·키움에 허용 IP로 등록할 주소를 확인합니다 (ipify.org에 한 번 접속)">내 공인 IP 확인</button>
+            <label class="lkc"><input type="checkbox" id="lkNotify"> 함락·위급 알림</label>
+            <label class="lkc" title="한국 시간 평일 08:00~20:00(정규장·넥스트레이드)에만 자동 동기화. 공휴일은 따로 거르지 않습니다."><input type="checkbox" id="lkMkt" checked> 장 시간에만</label>
+            <label class="lkf inl">자동<select id="lkAuto"><option value="0">끔</option><option value="60">1분마다</option><option value="300">5분마다</option><option value="900">15분마다</option></select></label>
+          </div>
+          <p class="lkdown" id="lkDown" hidden role="alert"><b>실행기와 연결이 끊겼습니다.</b> 터미널(검은 창)을 닫으면 앱이 꺼집니다. Mac은 바탕화면의 「자금전선 실행」, Windows는 받은 exe를 다시 실행한 뒤 새로 열린 브라우저 탭을 쓰세요.</p>
+          <p class="toast" id="lkMsg" role="status"></p>
+          <p class="note" id="lkUpd" hidden></p>
+          <p class="note">키는 이 PC의 설정 파일(홈 폴더의 .jageum-jeonseon)에만 저장되고 증권사 서버 말고는 어디에도 보내지 않습니다. 이 앱은 잔고 조회만 하며 주문은 하지 않습니다.</p>
+          </div>
+        </div>
+  </section>
+
   <div class="grid">
     <div class="col">
       <section class="panel" aria-label="종목별 전장 지도">
@@ -452,54 +512,6 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
       </section>
     </div>
     <div class="col">
-      <section class="panel" aria-label="내 계좌 연결하기" id="rGet" hidden>
-        <div class="panel-h"><h2>내 계좌 연결하기</h2><span class="tag">PC용 실행 파일 필요</span></div>
-        <div class="panel-b get">
-          <p class="note" style="margin:0">지금 화면은 체험판입니다. 내 증권 계좌(키움·토스·한국투자) 잔고로 전장을 펼치려면 PC에 실행 파일을 받아 켜세요. API 키는 내 PC에만 저장됩니다.</p>
-          <div class="getbtns" id="getBtns"></div>
-          <p class="note" id="getHint" style="margin:0"></p>
-        </div>
-      </section>
-      <section class="panel" aria-label="계좌 연결" id="rLink" hidden>
-        <div class="panel-h"><h2>계좌 연결</h2><span class="tag" id="lkState">연결 안 됨</span></div>
-        <div class="panel-b lk">
-          <label class="lkf">증권사<select id="lkBroker"><option value="kiwoom">키움증권</option><option value="toss">토스증권</option><option value="kis">한국투자증권</option><option value="all">여러 증권사 합치기</option><option value="demo">데모 (가상 데이터)</option></select></label>
-          <div class="lkg" data-b="kiwoom">
-            <label class="lkf">App Key<input id="kw_appkey" autocomplete="off" spellcheck="false"></label>
-            <label class="lkf">Secret Key<input id="kw_secretkey" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
-            <label class="lkf">서버<select id="kw_env"><option value="real">실전투자</option><option value="mock">모의투자</option></select></label>
-            <p class="note">키움 REST API 포털(openapi.kiwoom.com)에서 API 사용 신청 후 발급받은 키입니다. 실전과 모의투자 키는 서로 다릅니다.</p>
-          </div>
-          <div class="lkg" data-b="toss">
-            <label class="lkf">Client ID<input id="ts_client_id" autocomplete="off" spellcheck="false"></label>
-            <label class="lkf">Client Secret<input id="ts_client_secret" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
-            <label class="lkf">계좌 번호표(accountSeq)<input id="ts_account_seq" inputmode="numeric" placeholder="비우면 첫 계좌"></label>
-            <p class="note">토스증권 PC 웹(WTS) 설정 → Open API에서 발급하고, 이 PC의 IP를 허용 IP로 등록해야 합니다. 미국 주식은 환율로 원화 환산합니다.</p>
-          </div>
-          <div class="lkg" data-b="kis">
-            <label class="lkf">App Key<input id="ks_app_key" autocomplete="off" spellcheck="false"></label>
-            <label class="lkf">App Secret<input id="ks_app_secret" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
-            <label class="lkf">계좌번호<input id="ks_account" placeholder="12345678-01" autocomplete="off"></label>
-            <label class="lkc"><input type="checkbox" id="ks_mock"> 모의투자 계좌</label>
-          </div>
-          <div class="lkg" data-b="all"><p class="note">키를 저장해 둔 증권사(키움·토스·한국투자)의 잔고를 모두 불러와 한 전장에 합칩니다. 같은 종목은 수량을 더하고 평균단가는 수량 가중 평균으로 계산합니다. 먼저 증권사를 하나씩 골라 키를 저장하세요.</p></div>
-          <div class="lkg" data-b="demo"><p class="note">키 없이 가상 잔고로 체험합니다. 동기화할 때마다 시세가 조금씩 움직입니다.</p></div>
-          <div class="lkrow">
-            <button type="button" class="btn2" id="lkSave">저장하고 연결 시험</button>
-            <button type="button" class="btn2 ghost" id="lkSync">지금 동기화</button>
-            <button type="button" class="btn2 ghost" id="lkForget">이 증권사 키 삭제</button>
-            <button type="button" class="btn2 ghost" id="lkQuit" title="실행기(로컬 서버)를 끕니다">실행기 끄기</button>
-            <button type="button" class="btn2 ghost" id="lkIp" title="토스·키움에 허용 IP로 등록할 주소를 확인합니다 (ipify.org에 한 번 접속)">내 공인 IP 확인</button>
-            <label class="lkc"><input type="checkbox" id="lkNotify"> 함락·위급 알림</label>
-            <label class="lkc" title="한국 시간 평일 08:00~20:00(정규장·넥스트레이드)에만 자동 동기화. 공휴일은 따로 거르지 않습니다."><input type="checkbox" id="lkMkt" checked> 장 시간에만</label>
-            <label class="lkf inl">자동<select id="lkAuto"><option value="0">끔</option><option value="60">1분마다</option><option value="300">5분마다</option><option value="900">15분마다</option></select></label>
-          </div>
-          <p class="lkdown" id="lkDown" hidden role="alert"><b>실행기와 연결이 끊겼습니다.</b> 터미널(검은 창)을 닫으면 앱이 꺼집니다. Mac은 바탕화면의 「자금전선 실행」, Windows는 받은 exe를 다시 실행한 뒤 새로 열린 브라우저 탭을 쓰세요.</p>
-          <p class="toast" id="lkMsg" role="status"></p>
-          <p class="note" id="lkUpd" hidden></p>
-          <p class="note">키는 이 PC의 설정 파일(홈 폴더의 .jageum-jeonseon)에만 저장되고 증권사 서버 말고는 어디에도 보내지 않습니다. 이 앱은 잔고 조회만 하며 주문은 하지 않습니다.</p>
-        </div>
-      </section>
       <section class="panel" aria-label="참모 보고">
         <div class="panel-h"><h2>책사 보고</h2><span class="tag" id="rAlertTag"></span></div>
         <div class="panel-b"><ul class="alerts" id="rAlerts"></ul></div>
@@ -2341,6 +2353,7 @@ function bind(){
     catch(err){toast(err&&err.code==='declined'?'저장을 취소했습니다':'이 화면에서는 저장할 수 없습니다')}};
   $('rGuide').addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;const go=b.dataset.go;
     if(go==='close'){guideSeen=true;try{localStorage.setItem('wr-guide','done')}catch(err){}renderGuide();return}
+    if(go==='paste'&&LK.token){openLinkPanel();return}
     if(go==='paste'){document.querySelector('section[aria-label="잔고 붙여넣기"]').scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>$('rPaste').focus({preventScroll:true}),500)}
     if(go==='assign'){if(R.example||!R.holdings.length){toast('먼저 잔고를 넣어 주세요');document.querySelector('section[aria-label="잔고 붙여넣기"]').scrollIntoView({behavior:'smooth',block:'center'});return}$('rAssign').click();document.querySelector('section[aria-label="장수 열전"]').scrollIntoView({behavior:'smooth',block:'start'})}
     if(go==='map'){renderGuide.mapSeen=true;document.querySelector('.mapwrap').scrollIntoView({behavior:'smooth',block:'start'});renderGuide()}});
@@ -2389,6 +2402,8 @@ function marketOpen(){const k=new Date(Date.now()+9*3600e3),d=k.getUTCDay(),m=k.
 function lkAuto(){clearInterval(LK.timer);const s=+$('lkAuto').value;try{localStorage.setItem('wr-auto',String(s));localStorage.setItem('wr-mkt',$('lkMkt').checked?'1':'0')}catch(e){}if(s>0)LK.timer=setInterval(()=>{if($('lkMkt').checked&&!marketOpen())return;lkSync(true)},s*1000)}
 const INSTALL_CMD='curl -fsSL https://raw.githubusercontent.com/dlxkrtjs-ship-it/jageum-jeonseon/main/install.sh | bash';
 const DLBASE='https://github.com/dlxkrtjs-ship-it/jageum-jeonseon/releases/latest/download/';
+function openLinkPanel(){const t=!$('rLink').hidden?$('rLink'):$('rGet');if(location.hash==='#training')location.hash='#real';if(t.id==='rLink')setFold(false);t.scrollIntoView({behavior:'smooth',block:'start'})}
+function setFold(f){const b=$('lkFold');if(!b)return;$('rLink').classList.toggle('folded',f);b.textContent=f?'펼치기':'접기';b.setAttribute('aria-expanded',String(!f));try{localStorage.setItem('wr-fold',f?'1':'0')}catch(e){}}
 function showGet(){
   const ua=navigator.userAgent||'',pf=((navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||'').toLowerCase();
   const os=/win/.test(pf)||/Windows/.test(ua)?'win':/mac/.test(pf)||/Mac OS X/.test(ua)?(/iPhone|iPad/.test(ua)?'mobile':'mac'):/Android|iPhone|iPad/.test(ua)?'mobile':/linux/.test(pf)?'linux':'other';
@@ -2403,6 +2418,7 @@ async function initLink(){
   if(location.protocol==='file:'){showGet();return}
   const q=new URLSearchParams(location.search);let t=q.get('t');
   if(t){try{sessionStorage.setItem('wr-t',t)}catch(e){}history.replaceState(null,'',location.pathname+location.hash)}else{try{t=sessionStorage.getItem('wr-t')}catch(e){}}
+  if(!t&&/^(127\.0\.0\.1|localhost)$/.test(location.hostname)){try{const r=await fetch('/api/bootstrap');if(r.ok){t=(await r.json()).token;try{sessionStorage.setItem('wr-t',t)}catch(e){}}}catch(e){}}
   if(!t){showGet();return}LK.token=t;let st;try{st=await lkApi('/api/status')}catch(e){showGet();return}
   $('rLink').hidden=false;lkFill(st.config);
   let miss=0;LK.hb=setInterval(async()=>{if(!LK.token)return;try{await lkApi('/api/ping');if(miss>=2){$('lkDown').hidden=true;lkMsg('실행기에 다시 연결됐습니다.')}miss=0}catch(e){if(++miss===2){$('lkDown').hidden=false;$('lkState').textContent='실행기 꺼짐'}}},5000);$('lkState').textContent=`실행기 v${st.version} · 동기화 전`;
@@ -2414,6 +2430,8 @@ async function initLink(){
     lkMsg('저장하고 증권사에 연결해 보는 중…');try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify(body)});lkFill(r.config);document.querySelectorAll('#rLink input[type=password]').forEach(i=>i.value='');
       const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인.${(tst.errors||[]).length?' 일부 실패: '+tst.errors.join(' / '):''} 「지금 동기화」로 반영하세요.`,(tst.errors||[]).length>0)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
   $('lkSync').onclick=()=>lkSync(false);
+  $('lkFold').onclick=()=>setFold(!$('rLink').classList.contains('folded'));
+  {let f=null;try{f=localStorage.getItem('wr-fold')}catch(e){}const conn=st.config.broker&&st.config.broker!=='demo';setFold(f==null?false:(f==='1'&&conn))}
   $('lkQuit').onclick=async e=>{const btn=e.currentTarget;if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='정말 끌까요? 한 번 더 누르세요';setTimeout(()=>{delete btn.dataset.armed;btn.textContent='실행기 끄기'},4000);return}
     clearInterval(LK.timer);try{await lkApi('/api/shutdown',{method:'POST',body:'{}'})}catch(err){}LK.token=null;$('lkState').textContent='실행기 꺼짐';lkMsg('실행기를 껐습니다. 이 탭을 닫아도 됩니다. 다시 쓰려면 실행 파일을 다시 켜세요.');
     document.querySelectorAll('#rLink button,#rLink input,#rLink select').forEach(x=>x.disabled=true)};
@@ -2432,7 +2450,7 @@ async function initLink(){
   if(ready&&cb!=='demo')lkSync(true);else lkMsg(cb==='demo'?'증권사를 고르고 키를 넣은 뒤 「저장하고 연결 시험」을 누르세요. 데모로 먼저 체험하려면 「지금 동기화」를 누르세요.':'');
 }
 R=loadLocal()||EXAMPLE();
-bind(); storeNote(); render(true); initLink();
+bind(); storeNote(); render(true); initLink(); $('hqLink').onclick=openLinkPanel;
 (async()=>{
   try{
     if(!window.claude||!window.claude.use) return;

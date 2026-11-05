@@ -13,7 +13,7 @@ import argparse, json, os, random, re, secrets, socket, ssl, sys, threading, tim
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.5.3"
+VERSION = "0.5.4"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -431,6 +431,12 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        if path == "/api/bootstrap":
+            # 실행기 주소(127.0.0.1:포트)로 직접 연 같은 출처 화면에만 토큰을 준다.
+            # 다른 사이트는 Host 검사(DNS 리바인딩 차단)와 브라우저의 출처 정책 때문에 이 응답을 읽을 수 없다.
+            if not self._host_ok() or self.headers.get("Sec-Fetch-Site", "same-origin") not in ("same-origin", "none"):
+                return self._send(403, {"error": "허용되지 않은 요청"})
+            return self._send(200, {"token": self.token})
         if path.startswith("/api/"):
             if not self._api_ok():
                 return
