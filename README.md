@@ -81,7 +81,7 @@ Mac 칩 확인(직접 zip을 받을 때만 필요): 사과(🍎) 메뉴 → 「�
 1. 토스증권 PC 웹(WTS) → 설정 → Open API
 2. Client ID와 Client Secret 발급
 3. 허용 IP에 이 PC의 공인 IP 등록 (등록하지 않으면 403 오류)
-4. 계좌가 여러 개면 「계좌 번호표(accountSeq)」를 넣고, 비워 두면 첫 계좌를 씁니다
+4. 계좌가 하나면 그대로 두면 됩니다. 여러 개면 키를 저장한 뒤 「계좌 목록 불러오기」를 눌러 고르세요(계좌번호는 끝 4자리만 표시)
 
 **한국투자증권**
 1. [KIS Developers](https://apiportal.koreainvestment.com)에서 App Key/App Secret 발급

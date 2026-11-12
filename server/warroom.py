@@ -13,7 +13,7 @@ import argparse, json, os, random, re, secrets, socket, ssl, sys, threading, tim
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 REPO = "dlxkrtjs-ship-it/jageum-jeonseon"
 APP_NAME = "자금전선 작전상황실"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".jageum-jeonseon")
@@ -234,7 +234,7 @@ def kiwoom_balance(c):
 TOSS = os.environ.get("WARROOM_TOSS_BASE") or "https://openapi.tossinvest.com"  # 환경변수는 개발·시험용
 
 
-def toss_balance(c):
+def toss_token(c):
     tkey = f"toss:{c['client_id'][:8]}"
     token = cached_token(tkey)
     if not token:
@@ -243,6 +243,25 @@ def toss_balance(c):
         if not token:
             raise BrokerError("토스증권 토큰 발급 실패")
         token_store(tkey, token, time.time() + int(r.get("expires_in") or 3600))
+    return token
+
+
+TOSS_ACCT_TYPES = {"GENERAL": "종합", "ISA": "ISA", "PENSION": "연금", "IRP": "IRP"}
+
+
+def toss_accounts(c):
+    """토스증권 계좌 목록. 계좌번호는 끝 4자리만 보여 준다."""
+    auth = {"Authorization": f"Bearer {toss_token(c)}"}
+    out = []
+    for a in http_json("GET", TOSS + "/api/v1/accounts", headers=auth).get("result") or []:
+        no = re.sub(r"\D", "", str(a.get("accountNo", "")))
+        t = str(a.get("accountType", ""))
+        out.append({"seq": a.get("accountSeq"), "tail": no[-4:], "type": TOSS_ACCT_TYPES.get(t, t)})
+    return out
+
+
+def toss_balance(c):
+    token = toss_token(c)
     auth = {"Authorization": f"Bearer {token}"}
     seq = str(c.get("account_seq") or "").strip()
     if not seq:
@@ -446,6 +465,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, {"app": APP_NAME, "version": VERSION, "config": public_config(load_config())})
             if path == "/api/state":
                 return self._send(200, {"state": _read(STATE_FILE) or None})
+            if path == "/api/accounts":
+                c = load_config().get("toss", {})
+                if not broker_ready("toss", c):
+                    return self._send(400, {"error": "먼저 토스증권 Client ID와 Client Secret을 저장하세요."})
+                try:
+                    with LOCK:
+                        try:
+                            accts = toss_accounts(c)
+                        except TokenExpired:
+                            drop_tokens("toss:")
+                            accts = toss_accounts(c)
+                    return self._send(200, {"accounts": accts})
+                except BrokerError as e:
+                    return self._send(502, {"error": str(e)})
             if path == "/api/myip":
                 try:
                     return self._send(200, {"ip": my_public_ip()})

@@ -365,6 +365,8 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
 .lkf{display:grid;gap:3px;font-size:11.5px;color:var(--ink-soft);min-width:0}
 .lkf input,.lkf select{font:inherit;font-size:13px;color:var(--ink);background:var(--paper);border:1px solid var(--line);padding:6px 8px;min-width:0}
 .lkf.inl{display:flex;align-items:center;gap:6px}
+.tsacct{display:flex;gap:6px;align-items:center}.tsacct select{flex:1;min-width:0}
+.lkf small{font-size:10.5px}
 .lkc{display:flex;align-items:center;gap:6px;font-size:12.5px;align-self:end}
 .lkrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 @media (max-width:480px){.lkg{grid-template-columns:1fr}}
@@ -460,8 +462,8 @@ em.o-win,em.o-adv,em.o-even,em.o-dis,em.o-lose{color:var(--oc)}
           <div class="lkg" data-b="toss">
             <label class="lkf">Client ID<input id="ts_client_id" autocomplete="off" spellcheck="false"></label>
             <label class="lkf">Client Secret<input id="ts_client_secret" type="password" autocomplete="new-password" placeholder="비워 두면 기존 값 유지"></label>
-            <label class="lkf">계좌 번호표(accountSeq)<input id="ts_account_seq" inputmode="numeric" placeholder="비우면 첫 계좌"></label>
-            <p class="note">토스증권 PC 웹(WTS) 설정 → Open API에서 발급하고, 이 PC의 IP를 허용 IP로 등록해야 합니다. 미국 주식은 환율로 원화 환산합니다.</p>
+            <label class="lkf">계좌 선택 <small>(계좌가 여러 개일 때만)</small><span class="tsacct"><select id="ts_account_seq"><option value="">첫 번째 계좌 (자동)</option></select><button type="button" class="reset" id="tsLoad">계좌 목록 불러오기</button></span></label>
+            <p class="note">토스증권 PC 웹(WTS) 설정 → Open API에서 발급하고, 이 PC의 IP를 허용 IP로 등록해야 합니다. 계좌가 하나면 「계좌 선택」은 그대로 두세요. 여러 개면 키를 저장한 뒤 「계좌 목록 불러오기」로 고릅니다(실제 계좌번호는 끝 4자리만 표시). 미국 주식은 환율로 원화 환산합니다.</p>
           </div>
           <div class="lkg" data-b="kis">
             <label class="lkf">App Key<input id="ks_app_key" autocomplete="off" spellcheck="false"></label>
@@ -2450,7 +2452,7 @@ async function lkApi(path,opt={}){const r=await fetch(path,Object.assign({},opt,
 const LKF={kiwoom:[['appkey','kw_appkey'],['secretkey','kw_secretkey'],['env','kw_env']],toss:[['client_id','ts_client_id'],['client_secret','ts_client_secret'],['account_seq','ts_account_seq']],kis:[['app_key','ks_app_key'],['app_secret','ks_app_secret'],['account','ks_account'],['mock','ks_mock']]};
 const LKN={kiwoom:'키움증권',toss:'토스증권',kis:'한국투자증권',demo:'데모',all:'여러 증권사'};
 function lkShow(){const b=$('lkBroker').value;document.querySelectorAll('#rLink .lkg').forEach(g=>g.hidden=g.dataset.b!==b)}
-function lkFill(cfg){LK.cfg=cfg;$('lkBroker').value=cfg.broker||'demo';for(const b in LKF){const c=(cfg.brokers||{})[b]||{};for(const[k,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=!!c[k];else if(el.type==='password')el.placeholder=c._secretSet?'저장됨 · 비워 두면 기존 값 유지':'';else if(c[k]!=null)el.value=c[k]}}lkShow()}
+function lkFill(cfg){LK.cfg=cfg;{const sq=((cfg.brokers||{}).toss||{}).account_seq,el=$('ts_account_seq');if(sq&&![...el.options].some(o=>o.value===String(sq)))el.add(new Option(`계좌 순번 ${sq} (저장됨)`,String(sq)))}$('lkBroker').value=cfg.broker||'demo';for(const b in LKF){const c=(cfg.brokers||{})[b]||{};for(const[k,id]of LKF[b]){const el=$(id);if(el.type==='checkbox')el.checked=!!c[k];else if(el.type==='password')el.placeholder=c._secretSet?'저장됨 · 비워 두면 기존 값 유지':'';else if(c[k]!=null)el.value=c[k]}}lkShow()}
 function lkMsg(t,bad){const m=$('lkMsg');m.textContent=t;m.style.color=bad?'var(--down)':''}
 async function lkSync(quiet){
   if(!LK.token)return;if(!quiet)lkMsg('잔고를 불러오는 중…');
@@ -2490,6 +2492,9 @@ async function initLink(){
     lkMsg('저장하고 증권사에 연결해 보는 중…');try{const r=await lkApi('/api/config',{method:'POST',body:JSON.stringify(body)});lkFill(r.config);document.querySelectorAll('#rLink input[type=password]').forEach(i=>i.value='');
       const tst=await lkApi('/api/test',{method:'POST',body:JSON.stringify({broker:b})});lkMsg(`${LKN[b]} 연결 성공 · ${tst.count}개 종목 확인.${(tst.errors||[]).length?' 일부 실패: '+tst.errors.join(' / '):''} 「지금 동기화」로 반영하세요.`,(tst.errors||[]).length>0)}catch(e){lkMsg('연결 실패: '+e.message,true)}};
   $('lkSync').onclick=()=>lkSync(false);
+  $('tsLoad').onclick=async()=>{const el=$('ts_account_seq'),cur=el.value;lkMsg('토스증권 계좌 목록을 불러오는 중… (키를 먼저 저장해야 합니다)');
+    try{const r=await lkApi('/api/accounts');el.innerHTML='<option value="">첫 번째 계좌 (자동)</option>'+r.accounts.map(a=>`<option value="${esc(String(a.seq))}">${esc(a.type)} 계좌 ····${esc(a.tail)}</option>`).join('');el.value=r.accounts.some(a=>String(a.seq)===cur)?cur:'';
+      lkMsg(`계좌 ${r.accounts.length}개를 찾았습니다. 고른 뒤 「저장하고 연결 시험」을 누르세요.`)}catch(e){lkMsg('계좌 목록을 불러오지 못했습니다: '+e.message,true)}};
   $('lkFold').onclick=()=>setFold(!$('rLink').classList.contains('folded'));
   {let f=null;try{f=localStorage.getItem('wr-fold')}catch(e){}const conn=st.config.broker&&st.config.broker!=='demo';setFold(f==null?false:(f==='1'&&conn))}
   $('lkQuit').onclick=async e=>{const btn=e.currentTarget;if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='정말 끌까요? 한 번 더 누르세요';setTimeout(()=>{delete btn.dataset.armed;btn.textContent='실행기 끄기'},4000);return}

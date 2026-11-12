@@ -32,4 +32,6 @@ ss = [h for h in m["holdings"] if h["code"] == "005930"][0]
 assert ss["qty"] == 85 and ss["avg"] == round((72000 * 80 + 70000 * 5) / 85, 2), ss
 assert m["cash"] == 5200000 + 3000000 and m["broker"] == "all" and not m["errors"], m
 assert len(m["holdings"]) == 4, [h["code"] for h in m["holdings"]]
-print("ok: 키움", len(k["holdings"]), "종목 / 토스", len(t["holdings"]), "종목 / 토큰 폐기·호출 한도 재시도 / 여러 증권사 합치기")
+acc = warroom.toss_accounts({"client_id": "CID12345", "client_secret": "S"})
+assert acc == [{"seq": 7, "tail": "2345", "type": "종합"}], acc
+print("ok: 키움", len(k["holdings"]), "종목 / 토스", len(t["holdings"]), "종목 / 토큰 폐기·호출 한도 재시도 / 여러 증권사 합치기 / 토스 계좌 목록")
